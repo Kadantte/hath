@@ -23,15 +23,14 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
-import java.net.Socket;
-import java.net.ServerSocket;
 import java.net.InetAddress;
-import java.lang.Thread;
-import java.util.List;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.List;
 
 public class HTTPServer implements Runnable {
 	private HentaiAtHomeClient client;
@@ -39,10 +38,10 @@ public class HTTPServer implements Runnable {
 	private ServerSocket ss;
 	private Thread myThread;
 	private List<HTTPSession> sessions;
-	private int currentConnId;	
+	private int currentConnId;
 	private boolean allowNormalConnections;
 	private Hashtable<String,FloodControlEntry> floodControlTable;
-	
+
 	public HTTPServer(HentaiAtHomeClient client) {
 		this.client = client;
 		bandwidthMonitor = new HTTPBandwidthMonitor();
@@ -53,25 +52,25 @@ public class HTTPServer implements Runnable {
 		allowNormalConnections = false;
 		floodControlTable = new Hashtable<String,FloodControlEntry>();
 	}
-	
+
 	public boolean startConnectionListener(int port) {
 		try {
 			Out.info("Starting up the internal HTTP Server...");
-		
+
 			if(ss != null) {
 				stopConnectionListener();
 			}
-			
+
 			ss = new ServerSocket(port);
 			myThread = new Thread(this);
 			myThread.start();
-			
+
 			Out.info("Internal HTTP Server was successfully started, and is listening on port " + port);
-			
+
 			return true;
 		} catch(Exception e) {
 			allowNormalConnections();
-			
+
 			e.printStackTrace();
 			Out.info("");
 			Out.info("************************************************************************************************************************************");
@@ -81,10 +80,10 @@ public class HTTPServer implements Runnable {
 			Out.info("************************************************************************************************************************************");
 			Out.info("");
 		}
-		
+
 		return false;
 	}
-	
+
 	public void stopConnectionListener() {
 		if(ss != null) {
 			try {
@@ -93,20 +92,20 @@ public class HTTPServer implements Runnable {
 			ss = null;
 		}
 	}
-	
+
 	public void pruneFloodControlTable() {
 		List<String> toPrune = Collections.checkedList(new ArrayList<String>(), String.class);
 
 		synchronized(floodControlTable) {
 			Enumeration<String> keys = floodControlTable.keys();
-			
+
 			while(keys.hasMoreElements()) {
 				String key = keys.nextElement();
 				if(floodControlTable.get(key).isStale()) {
 					toPrune.add(key);
 				}
 			}
-			
+
 			for(String key : toPrune) {
 				floodControlTable.remove(key);
 			}
@@ -116,24 +115,24 @@ public class HTTPServer implements Runnable {
 		toPrune = null;
 		System.gc();
 	}
-	
+
 	public void nukeOldConnections(boolean killall) {
 		synchronized(sessions) {
 			// in some rare cases, the connection is unable to remove itself from the session list. if so, it will return true for doTimeoutCheck, meaning that we will have to clear it out from here instead
 			List<HTTPSession> remove = Collections.checkedList(new ArrayList<HTTPSession>(), HTTPSession.class);
-			
+
 			for(HTTPSession session : sessions) {
 				if(session.doTimeoutCheck(killall)) {
 					remove.add(session);
 				}
 			}
-			
+
 			for(HTTPSession session : remove) {
 				sessions.remove(session);
 			}
 		}
 	}
-	
+
 	public void allowNormalConnections() {
 		allowNormalConnections = true;
 	}
@@ -142,12 +141,12 @@ public class HTTPServer implements Runnable {
 		try {
 			while(true) {
 				Socket s = ss.accept();
-				
+
 				synchronized(sessions) {
 					boolean forceClose = false;
 
 					//  private network: localhost, 127.x.y.z, 10.0.0.0 - 10.255.255.255, 172.16.0.0 - 172.31.255.255,  192.168.0.0 - 192.168.255.255, 169.254.0.0 -169.254.255.255
-					
+
 					InetAddress addr = s.getInetAddress();
 					String addrString = addr.toString();
 					String myInetAddr = Settings.getClientHost().replace("::ffff:", "");
@@ -156,10 +155,10 @@ public class HTTPServer implements Runnable {
 
 					if(!apiServerAccess && !allowNormalConnections) {
 						Out.warning("Rejecting connection request during startup.");
-						forceClose = true;						
+						forceClose = true;
 					} else if(!apiServerAccess && !localNetworkAccess) {
 						// connections from the API Server and the local network are not subject to the max connection limit or the flood control
-						
+
 						int maxConnections = Settings.getMaxConnections();
 						int currentConnections = sessions.size();
 
@@ -172,9 +171,9 @@ public class HTTPServer implements Runnable {
 								// let the dispatcher know that we're close to the breaking point. this will make it back off for 30 sec, and temporarily turns down the dispatch rate to half.
 								client.getServerHandler().notifyOverload();
 							}
-						
+
 							// this flood control will stop clients from opening more than ten connections over a (roughly) five second floating window, and forcibly block them for 60 seconds if they do.
-							FloodControlEntry fce = null;						
+							FloodControlEntry fce = null;
 							synchronized(floodControlTable) {
 								fce = floodControlTable.get(addrString);
 								if(fce == null) {
@@ -182,7 +181,7 @@ public class HTTPServer implements Runnable {
 									floodControlTable.put(addrString, fce);
 								}
 							}
-						
+
 							if(!fce.isBlocked()) {
 								if(!fce.hit()) {
 									Out.warning("Flood control activated for  " + addrString + " (blocking for 60 seconds)");
@@ -196,18 +195,18 @@ public class HTTPServer implements Runnable {
 					}
 
 					if(forceClose) {
-						try { s.close(); } catch(Exception e) { /* LALALALALA */ }					
+						try { s.close(); } catch(Exception e) { /* LALALALALA */ }
 					}
 					else {
 						s.setReceiveBufferSize(131072);
 						s.setSendBufferSize(131072);
 						s.setTrafficClass(8);
-					
+
 						// all is well. keep truckin'
 						HTTPSession hs = new HTTPSession(s, getNewConnId(), localNetworkAccess, this);
 						sessions.add(hs);
 						Stats.setOpenConnections(sessions.size());
-						hs.handleSession();											
+						hs.handleSession();
 					}
 				}
 			}
@@ -216,18 +215,18 @@ public class HTTPServer implements Runnable {
 			ss = null;
 		}
 	}
-	
+
 	private synchronized int getNewConnId() {
 		return ++currentConnId;
 	}
-	
+
 	public void removeHTTPSession(HTTPSession httpSession) {
 		synchronized(sessions) {
 			sessions.remove(httpSession);
 			Stats.setOpenConnections(sessions.size());
 		}
 	}
-	
+
 	public HTTPBandwidthMonitor getBandwidthMonitor() {
 		return bandwidthMonitor;
 	}
@@ -235,33 +234,33 @@ public class HTTPServer implements Runnable {
 	public HentaiAtHomeClient getHentaiAtHomeClient() {
 		return client;
 	}
-	
+
 	private class FloodControlEntry {
 		private InetAddress addr;
 		private int connectCount;
 		private long lastConnect;
 		private long blocktime;
-	
+
 		public FloodControlEntry(InetAddress addr) {
 			this.addr = addr;
 			this.connectCount = 0;
 			this.lastConnect = 0;
 			this.blocktime = 0;
 		}
-		
+
 		public boolean isStale() {
 			return lastConnect < System.currentTimeMillis() - 60000;
 		}
-		
+
 		public boolean isBlocked() {
 			return blocktime > System.currentTimeMillis();
 		}
-		
+
 		public boolean hit() {
 			long nowtime = System.currentTimeMillis();
 			connectCount = Math.max(0, connectCount - (int) Math.floor((nowtime - lastConnect) / 1000)) + 1;
 			lastConnect = nowtime;
-			
+
 			if(connectCount > 10) {
 				blocktime = nowtime + 60000;	// block this client from connecting for 60 seconds
 				return false;

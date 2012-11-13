@@ -23,17 +23,18 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
-import java.util.Date;
-import java.util.TimeZone;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.net.Socket;
-import java.net.InetAddress;
-import java.lang.Thread;
-import java.lang.StringBuilder;
-import java.nio.charset.Charset;
-import java.io.*;
-import java.util.regex.*;
+import java.util.Date;
+import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 public class HTTPSession implements Runnable {
 
@@ -71,9 +72,9 @@ public class HTTPSession implements Runnable {
 		BufferedReader br = null;
 		DataOutputStream dos = null;
 		BufferedOutputStream bs = null;
-		
+
 		HTTPResponseProcessor hpc = null;
-		String info = this.toString() + " ";		
+		String info = this.toString() + " ";
 
 		try {
 			isr = new InputStreamReader(mySocket.getInputStream());
@@ -105,9 +106,9 @@ public class HTTPSession implements Runnable {
 					break;
 				}
 			} while(true);
-		
+
 			hr = new HTTPResponse(this);
-			
+
 			// parse the request - this will also update the response code and initialize the proper response processor
 			hr.parseRequest(request, localNetworkAccess);
 
@@ -136,14 +137,14 @@ public class HTTPSession implements Runnable {
 			}
 
 			header.append(CRLF);
-		
+
 			// write the header to the socket
-			byte[] headerBytes = header.toString().getBytes(Charset.forName("ISO-8859-1"));	
+			byte[] headerBytes = header.toString().getBytes(Charset.forName("ISO-8859-1"));
 			bs.write(headerBytes, 0, headerBytes.length);
-			
+
 			// subtract the total size of the header from the size of the first data packet sent. this avoids a problem where the third packet is undersize.
 			int pendingHeaderLength = headerBytes.length;
-			
+
 			if(pendingHeaderLength >= Settings.TCP_PACKET_SIZE_LOW) {
 				// flush header if we're already above the desirable max data packet size. (this shouldn't actually be possible, but better safe than trying to write a negative number of bytes.)
 				bs.flush();
@@ -152,14 +153,14 @@ public class HTTPSession implements Runnable {
 
 			if(hr.isRequestHeadOnly()) {
 				// if this is a HEAD request, we flush the socket and finish
-				bs.flush();				
+				bs.flush();
 				info += "Code=" + statusCode + " ";
 				Out.info(info + (request == null ? "Invalid Request" : request));
 			}
 			else {
 				// if this is a GET request, process the pony if we have one
 				info += "Code=" + statusCode + " Bytes=" + String.format("%1$-8s", contentLength) + " ";
-				
+
 				if(request != null) {
 					// skip the startup message for error requests
 					Out.info(info + request);
@@ -169,15 +170,15 @@ public class HTTPSession implements Runnable {
 
 				if(contentLength == 0) {
 					// there is no pony to write (probably a redirect). flush the socket and finish.
-					bs.flush();				
-				} else {				
+					bs.flush();
+				} else {
 					if(localNetworkAccess && (hpc instanceof HTTPResponseProcessorFile || hpc instanceof HTTPResponseProcessorProxy)) {
 						Out.debug(this + " Local network access detected, skipping throttle.");
-						
+
 						if(hpc instanceof HTTPResponseProcessorProxy) {
 							// split the request even though it is local. otherwise the system will stall waiting for the proxy to serve the request fully before any data at all is returned.
 							int writtenBytes = 0;
-							
+
 							while(writtenBytes < contentLength) {
 								// write a packet of data and flush. getBytesRange will block if new data is not yet available.
 
@@ -191,7 +192,7 @@ public class HTTPSession implements Runnable {
 						}
 						else {
 							// dump the entire file and flush.
-							bs.write(hpc.getBytes(), 0, contentLength);							
+							bs.write(hpc.getBytes(), 0, contentLength);
 							bs.flush();
 						}
 					}
@@ -201,7 +202,7 @@ public class HTTPSession implements Runnable {
 
 						HTTPBandwidthMonitor bwm = httpServer.getBandwidthMonitor();
 						boolean disableBWM = Settings.isDisableBWM();
-						
+
 						int packetSize = bwm.getActualPacketSize();
 						int writtenBytes = 0;
 
@@ -228,7 +229,7 @@ public class HTTPSession implements Runnable {
 				long sendTime = System.currentTimeMillis() - startTime;
 				DecimalFormat df = new DecimalFormat("0.00");
 				Out.info(info + "Finished processing request in " + df.format(sendTime / 1000.0) + " seconds (" + (sendTime > 0 ? df.format(contentLength / (float) sendTime) : "-.--") + " KB/s)");
-			}				
+			}
 		} catch(Exception e) {
 			Out.info(info + "The connection was interrupted or closed by the remote host.");
 			Out.debug(e == null ? "(no exception)" : e.getMessage());
@@ -296,6 +297,7 @@ public class HTTPSession implements Runnable {
 		return localNetworkAccess;
 	}
 
+	@Override
 	public String toString() {
 		return "{" + connId + String.format("%1$-17s", getSocketInetAddress().toString() + "}");
 	}

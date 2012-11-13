@@ -217,16 +217,16 @@ public class URLConnectionTools {
 					causemessage = (cause.getMessage() != null) ? cause.getMessage() : "";
 
 				if(message != null) {
-					if(message.equals("Connection timed out: connect")) {
-						Out.warning("Connection timed out getting " + source + ", retrying.. (" + trycounter + " tries left)");
+					if(message.equals("Request timed out: connect")) {
+						Out.warning("Request timed out getting " + source + ", retrying.. (" + trycounter + " tries left)");
 						continue;
 					}
-					else if(message.equals("Connection refused: connect")) {
-						Out.warning("Connection refused getting " + source + ", retrying.. (" + trycounter + " tries left)");
+					else if(message.equals("Request refused: connect")) {
+						Out.warning("Request refused getting " + source + ", retrying.. (" + trycounter + " tries left)");
 						continue;
 					}
 					else if(message.equals("Unexpected end of file from server")) {
-						Out.warning("Connection prematurely reset getting " + source + ", retrying.. (" + trycounter + " tries left)");
+						Out.warning("Request prematurely reset getting " + source + ", retrying.. (" + trycounter + " tries left)");
 						continue;
 					}
 					else if(e instanceof java.io.FileNotFoundException) {
@@ -237,8 +237,8 @@ public class URLConnectionTools {
 						Out.warning("Server returned: 403 Forbidden");
 						break;
 					}
-					else if(e instanceof java.net.SocketException && message.equals("Connection reset")) {
-						Out.warning("Connection reset getting " + source + ", retrying.. (" + trycounter + " tries left)");
+					else if(e instanceof java.net.SocketException && message.equals("Request reset")) {
+						Out.warning("Request reset getting " + source + ", retrying.. (" + trycounter + " tries left)");
 						continue;
 					}
 					else if(e instanceof java.net.UnknownHostException) {
@@ -266,7 +266,7 @@ public class URLConnectionTools {
 						break;
 					}
 					else if(causemessage.equals("Unexpected end of file from server")) {
-						Out.warning("Connection prematurely reset getting " + source + ", retrying.. (" + trycounter + " tries left)");
+						Out.warning("Request prematurely reset getting " + source + ", retrying.. (" + trycounter + " tries left)");
 						continue;
 					}
 					else {
