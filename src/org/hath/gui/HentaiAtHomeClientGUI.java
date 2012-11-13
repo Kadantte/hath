@@ -51,6 +51,8 @@ import org.hath.base.Settings;
 import org.hath.base.Stats;
 
 public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionListener, WindowListener, MouseListener, Runnable {
+	private static final long serialVersionUID = -4670818729421731834L;
+
 	private HentaiAtHomeClient client;
 	private HHControlPane controlPane;
 	private HHLogPane logPane;
@@ -193,7 +195,7 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 		myThread.start();
 
 		try {
-			Thread.currentThread().sleep(startVisible ? 2000 : 60000);
+			Thread.sleep(startVisible ? 2000 : 60000);
 		} catch(Exception e) {}
 
 		Settings.setActiveGUI(this);
@@ -204,7 +206,7 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 	public void run() {
 		while(true) {
 			try {
-				myThread.sleep(1000);
+				Thread.sleep(1000);
 			} catch(Exception e) {}
 
 			if(!Stats.isClientSuspended() && suspend_resume.isEnabled()) {

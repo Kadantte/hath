@@ -22,18 +22,27 @@ along with Hentai@Home GUI.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 package org.hath.gui;
-import org.hath.base.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Font;
 
-import java.awt.*;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+
+import org.hath.base.Out;
+import org.hath.base.OutListener;
+import org.hath.base.Settings;
 
 public class HHLogPane extends JPanel implements OutListener {
-	
+	private static final long serialVersionUID = 1228506033848759294L;
+
 	private JTextArea textArea;
 
 	public HHLogPane() {
 		setLayout(new BorderLayout());
-		
+
 		textArea = new JTextArea();
 		textArea.setFont(new Font("Courier", Font.PLAIN, 11));
 		textArea.setEditable(false);
@@ -41,16 +50,16 @@ public class HHLogPane extends JPanel implements OutListener {
 		textArea.setWrapStyleWord(true);
 		addText("Hentai@Home GUI " + Settings.CLIENT_VERSION + " initializing...");
 		addText("The client will automatically start up momentarily...");
-		
+
 		JScrollPane taHolder = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,	JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		taHolder.setPreferredSize(new Dimension(1000, 450));
 		taHolder.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Program Output"), BorderFactory.createEmptyBorder(5,5,5,5)), taHolder.getBorder()));
 
 		add(taHolder, BorderLayout.CENTER);
-		
+
 		Out.addOutListener(this);
 	}
-	
+
 	public void outputWritten(String entry) {
 		addText(entry);
 	}
@@ -64,7 +73,7 @@ public class HHLogPane extends JPanel implements OutListener {
 				e.printStackTrace();
 			}
 		}
-		
+
 		textArea.append(toAdd +"\n");
 		textArea.setCaretPosition(textArea.getText().length());
 	}
