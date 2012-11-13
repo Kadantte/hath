@@ -164,7 +164,7 @@ public class ServerHandler {
 				Out.info("");
 				
 				try {
-					java.lang.Thread.currentThread().sleep(90000);
+					Thread.sleep(90000);
 				} catch(Exception e) {}
 				
 				return notifyStart();
@@ -178,7 +178,7 @@ public class ServerHandler {
 				Out.info("************************************************************************************************************************************");
 				Out.info("");
 				
-				client.dieWithError("FAIL_OTHER_CLIENT_CONNECTED");
+				HentaiAtHomeClient.dieWithError("FAIL_OTHER_CLIENT_CONNECTED");
 				//return false;
 			}
 		}	
@@ -487,7 +487,7 @@ public class ServerHandler {
 	private boolean downloadAndCacheFile(URL source, String fileid) {
 		if(HVFile.isValidHVFileid(fileid)) {
 			CacheHandler ch = client.getCacheHandler();
-			File tmpfile = new File(ch.getTmpDir(), fileid);
+			File tmpfile = new File(CacheHandler.getTmpDir(), fileid);
 
 			if(tmpfile.exists()) {
 				tmpfile.delete();

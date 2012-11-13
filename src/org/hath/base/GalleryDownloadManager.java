@@ -219,7 +219,7 @@ public class GalleryDownloadManager implements Runnable {
 			}
 							
 			try {
-				myThread.sleep(sleepTime);
+				Thread.sleep(sleepTime);
 			} catch(java.lang.InterruptedException e) {}
 		}
 		

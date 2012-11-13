@@ -61,7 +61,7 @@ public class HTTPResponseProcessorProxy extends HTTPResponseProcessor {
 		
 		while(endoff > gdf.getCurrentWriteoff()) {
 			try {
-				Thread.currentThread().sleep(10);
+				Thread.sleep(10);
 			} catch(Exception e) {}
 		}
 		

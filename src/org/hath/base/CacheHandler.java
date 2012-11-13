@@ -105,7 +105,7 @@ public class CacheHandler {
 				Out.info("************************************************************************************************************************************");
 				Out.info("");
 
-				client.dieWithError("Failed to load the database.");
+				HentaiAtHomeClient.dieWithError("Failed to load the database.");
 			}
 
 			if(quickStart) {
@@ -126,7 +126,7 @@ public class CacheHandler {
 			Out.info("CacheHandler: Database initialized");
 		} catch(Exception e) {
 			Out.error("CacheHandler: Failed to initialize SQLite database engine");
-			client.dieWithError(e);
+			HentaiAtHomeClient.dieWithError(e);
 		}
 	}
 
@@ -229,7 +229,7 @@ public class CacheHandler {
 				rs.close();
 			} catch(Exception e) {
 				Out.error("CacheHandler: Failed to perform database operation");
-				client.dieWithError(e);
+				HentaiAtHomeClient.dieWithError(e);
 			}
 
 			updateStats();
@@ -311,7 +311,7 @@ public class CacheHandler {
 			}
 		} catch(Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
-			client.dieWithError(e);
+			HentaiAtHomeClient.dieWithError(e);
 		}
 
 		++cacheCount;
@@ -357,7 +357,7 @@ public class CacheHandler {
 			updateStats();
 		} catch(Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
-			client.dieWithError(e);
+			HentaiAtHomeClient.dieWithError(e);
 		}
 	}
 
@@ -438,7 +438,7 @@ public class CacheHandler {
 				}
 			} catch(Exception e) {
 				Out.error("CacheHandler: Failed to perform database operation");
-				client.dieWithError(e);
+				HentaiAtHomeClient.dieWithError(e);
 			}
 
 			Out.info("CacheHandler: Loaded " + knownFiles + " known files.");
@@ -514,7 +514,7 @@ public class CacheHandler {
 				}
 			} catch(Exception e) {
 				Out.error("CacheHandler: Failed to perform database operation");
-				client.dieWithError(e);
+				HentaiAtHomeClient.dieWithError(e);
 			}
 
 			if(!noServerDeleteNotify) {
@@ -575,7 +575,7 @@ public class CacheHandler {
 			}
 		} catch(Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
-			client.dieWithError(e);
+			HentaiAtHomeClient.dieWithError(e);
 		}
 
 		client.getServerHandler().notifyUncachedFiles(deletedFiles);
@@ -620,7 +620,7 @@ public class CacheHandler {
 			}
 		} catch(Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
-			client.dieWithError(e);
+			HentaiAtHomeClient.dieWithError(e);
 		}
 
 		if(!noServerDeleteNotify) {
@@ -656,7 +656,7 @@ public class CacheHandler {
 			}
 		} catch(Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
-			client.dieWithError(e);
+			HentaiAtHomeClient.dieWithError(e);
 		}
 
 		return size;
@@ -679,7 +679,7 @@ public class CacheHandler {
 			}
 		} catch(Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
-			client.dieWithError(e);
+			HentaiAtHomeClient.dieWithError(e);
 		}
 
 		return fileList;
@@ -808,7 +808,7 @@ public class CacheHandler {
 				}
 			} catch(Exception e) {
 				Out.error("CacheHandler: Failed to perform database operation");
-				client.dieWithError(e);
+				HentaiAtHomeClient.dieWithError(e);
 			}
 		}
 	}

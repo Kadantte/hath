@@ -44,7 +44,7 @@ public class HTTPBandwidthMonitor {
 			sleepTrigger = 0;
 			
 			try {
-				thread.sleep(sleepTime);
+				Thread.sleep(sleepTime);
 			} catch(Exception e) {
 				e.printStackTrace();
 			}
