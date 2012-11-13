@@ -133,6 +133,11 @@ public class RequestStatsTableModel extends AbstractTableModel implements Reques
 
 	@Override
 	public void requestUpdated(int id, int bytesSent) {
-		fireTableRowsUpdated(0, 0);
+		reqListLock.readLock().lock();
+		int idx = reqList.indexOf(id);
+		reqListLock.readLock().unlock();
+
+		if (idx > -1)
+			fireTableRowsUpdated(idx, idx);
 	}
 }
