@@ -23,7 +23,7 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
-public class HTTPResponseProcessorSpeedtest extends HTTPResponseProcessor {	
+public class HTTPResponseProcessorSpeedtest extends HTTPResponseProcessor {
 	int testsize = 0;
 
 	public HTTPResponseProcessorSpeedtest(int testsize) {
@@ -33,19 +33,19 @@ public class HTTPResponseProcessorSpeedtest extends HTTPResponseProcessor {
 	public int getContentLength() {
 		return testsize;
 	}
-	
+
 	public byte[] getBytes() {
 		return getRandomBytes(testsize);
 	}
-	
+
 	public byte[] getBytesRange(int len) {
 		return getRandomBytes(len);
 	}
-	
+
 	private byte[] getRandomBytes(int testsize) {
 		// generate a random body the server can use to gauge the actual upload speed capabilities of this client
 		byte[] random = new byte[testsize];
-		for(int i = 0; i < testsize; i++) {
+		for (int i = 0; i < testsize; i++) {
 			random[i] = (byte) Math.floor(Math.random() * 256);
 		}
 		return random;

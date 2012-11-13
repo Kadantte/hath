@@ -23,14 +23,13 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
-import java.net.URL;
-import java.io.File;
-import java.lang.StringBuffer;
-import java.util.List;
-import java.util.Hashtable;
-import java.util.Enumeration;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.List;
 
 public class ServerHandler {
 	public static final String ACT_SERVER_STAT = "server_stat";
@@ -53,22 +52,20 @@ public class ServerHandler {
 	private static boolean loginValidated = false;
 	private long lastOverloadNotification;
 
-	
 	public ServerHandler(HentaiAtHomeClient client) {
 		this.client = client;
 		lastOverloadNotification = 0;
 	}
 
-
 	public static URL getServerConnectionURL(String act) {
 		return getServerConnectionURL(act, "");
 	}
-	
+
 	public static URL getServerConnectionURL(String act, String add) {
 		URL serverConnectionURL = null;
 
 		try {
-			if(act.equals(ACT_SERVER_STAT)) {
+			if (act.equals(ACT_SERVER_STAT)) {
 				serverConnectionURL = new java.net.URL(Settings.CLIENT_API_URL + "clientbuild=" + Settings.CLIENT_BUILD + "&act=" + act);
 			}
 			else {
@@ -76,18 +73,18 @@ public class ServerHandler {
 				String actkey = MiscTools.getSHAString("hentai@home-" + act + "-" + add + "-" + Settings.getClientID() + "-" + correctedTime + "-" + Settings.getClientKey());
 				serverConnectionURL = new java.net.URL(Settings.CLIENT_API_URL + "clientbuild=" + Settings.CLIENT_BUILD + "&act=" + act + "&add=" + add + "&cid=" + Settings.getClientID() + "&acttime=" + correctedTime + "&actkey=" + actkey);
 			}
-		} catch(java.net.MalformedURLException e) {
+		} catch (java.net.MalformedURLException e) {
 			HentaiAtHomeClient.dieWithError(e);
 		}
-		
+
 		return serverConnectionURL;
 	}
-	
+
 	// communications that do not use additional variables can use this
 	private boolean simpleNotification(String act, String humanReadable) {
 		ServerResponse sr = ServerResponse.getServerResponse(act, this);
-		
-		if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
+
+		if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
 			Out.debug(humanReadable + " notification successful.");
 			return true;
 		}
@@ -95,16 +92,15 @@ public class ServerHandler {
 			Out.warning(humanReadable + " notification failed.");
 			return false;
 		}
-	
+
 	}
 
-	
 	// simple notifications
-	
+
 	public boolean notifySuspend() {
 		return simpleNotification(ACT_CLIENT_SUSPEND, "Suspend");
 	}
-	
+
 	public boolean notifyResume() {
 		return simpleNotification(ACT_CLIENT_RESUME, "Resume");
 	}
@@ -112,35 +108,34 @@ public class ServerHandler {
 	public boolean notifyShutdown() {
 		return simpleNotification(ACT_CLIENT_STOP, "Shutdown");
 	}
-	
+
 	public boolean notifyOverload() {
 		long nowtime = System.currentTimeMillis();
-		
-		if(lastOverloadNotification < nowtime - 30000) {
-			lastOverloadNotification = nowtime;			
+
+		if (lastOverloadNotification < nowtime - 30000) {
+			lastOverloadNotification = nowtime;
 			return simpleNotification(ACT_OVERLOAD, "Overload");
 		}
-		
+
 		return false;
 	}
 
 	public boolean notifyMoreFiles() {
 		return simpleNotification(ACT_MORE_FILES, "More Files");
 	}
-		
-	
+
 	// these communcation methods are more complex, and have their own result parsing
-		
+
 	public boolean notifyStart() {
 		ServerResponse sr = ServerResponse.getServerResponse(ACT_CLIENT_START, this);
-		
-		if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
+
+		if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
 			Out.info("Start notification successful. Note that there may be a short wait before the server registers this client on the network.");
 			return true;
 		}
 		else {
 			String failcode = sr.getFailCode();
-			if(failcode.startsWith("FAIL_CONNECT_TEST")) {
+			if (failcode.startsWith("FAIL_CONNECT_TEST")) {
 				Out.info("");
 				Out.info("************************************************************************************************************************************");
 				Out.info("The client has failed the external connection test.");
@@ -152,24 +147,25 @@ public class ServerHandler {
 				Out.info("Use Program -> Exit in windowed mode or hit Ctrl+C in console mode to exit the program.");
 				Out.info("************************************************************************************************************************************");
 				Out.info("");
-				
+
 				return false;
 			}
-			else if(failcode.startsWith("FAIL_STARTUP_FLOOD")) {
+			else if (failcode.startsWith("FAIL_STARTUP_FLOOD")) {
 				Out.info("");
 				Out.info("************************************************************************************************************************************");
 				Out.info("Flood control is in effect.");
 				Out.info("The client will automatically retry connecting in 90 seconds.");
 				Out.info("************************************************************************************************************************************");
 				Out.info("");
-				
+
 				try {
 					Thread.sleep(90000);
-				} catch(Exception e) {}
-				
+				} catch (Exception e) {
+				}
+
 				return notifyStart();
 			}
-			else if(failcode.startsWith("FAIL_OTHER_CLIENT_CONNECTED")) {
+			else if (failcode.startsWith("FAIL_OTHER_CLIENT_CONNECTED")) {
 				Out.info("");
 				Out.info("************************************************************************************************************************************");
 				Out.info("The server detected that another client was already connected from this computer or local network.");
@@ -177,109 +173,109 @@ public class ServerHandler {
 				Out.info("The program will now terminate.");
 				Out.info("************************************************************************************************************************************");
 				Out.info("");
-				
+
 				HentaiAtHomeClient.dieWithError("FAIL_OTHER_CLIENT_CONNECTED");
-				//return false;
+				// return false;
 			}
-		}	
-		
+		}
+
 		return false;
 	}
-	
+
 	public void notifyUncachedFiles(List<HVFile> deletedFiles) {
 		// note: as we want to avoid POST, we do this as a long GET. to avoid exceeding certain URL length limitations, we uncache at most 50 files at a time
 		int deleteCount = deletedFiles.size();
-		
-		if(deleteCount > 0) {
+
+		if (deleteCount > 0) {
 			Out.debug("Notifying server of " + deleteCount + " uncached files...");
-		
+
 			do {
 				StringBuffer sb = new StringBuffer();
 				int limiter = 0;
-				
-				while(deleteCount > 0 && ++limiter <= 50) {
+
+				while (deleteCount > 0 && ++limiter <= 50) {
 					sb.append((limiter != 1 ? ";" : "") + deletedFiles.remove(--deleteCount).getFileid());
 				}
-				
+
 				URL uncacheURL = getServerConnectionURL(ACT_FILE_UNCACHE, sb.toString());
 				ServerResponse sr = ServerResponse.getServerResponse(uncacheURL, this);
-				
-				if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
+
+				if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
 					Out.debug("Uncache notification successful.");
 				}
 				else {
-					Out.warning("Uncache notification failed.");			
+					Out.warning("Uncache notification failed.");
 				}
-			} while(deleteCount > 0);
+			} while (deleteCount > 0);
 		}
 	}
 
 	public void notifyRegisterFiles(List<HVFile> pendingRegister) {
 		int registerCount = pendingRegister.size();
-		
+
 		Out.debug("Notifying server of " + registerCount + " registered files...");
-	
+
 		StringBuffer sb = new StringBuffer();
-		while(registerCount > 0) {
+		while (registerCount > 0) {
 			sb.append((sb.length() > 0 ? ";" : "") + pendingRegister.remove(--registerCount).getFileid());
 		}
-		
+
 		URL registerURL = getServerConnectionURL(ACT_FILE_REGISTER, sb.toString());
 		ServerResponse sr = ServerResponse.getServerResponse(registerURL, this);
-		
-		if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
+
+		if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
 			Out.debug("Register notification successful.");
 		}
 		else {
-			Out.warning("Register notification failed.");			
+			Out.warning("Register notification failed.");
 		}
 	}
-	
+
 	public String[] getBlacklist(long deltatime) {
 		URL blacklistURL = getServerConnectionURL(ACT_GET_BLACKLIST, "" + deltatime);
 		ServerResponse sr = ServerResponse.getServerResponse(blacklistURL, this);
 
-		if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
+		if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
 			return sr.getResponseText();
 		} else {
 			return null;
 		}
 	}
-	
+
 	public void stillAliveTest() {
 		CakeSphere cs = new CakeSphere(this, client);
 		cs.stillAlive();
 	}
-		
+
 	// this MUST NOT be called after the client has started up, as it will clear out and reset the client on the server, leaving the client in a limbo until restart
 	public void loadClientSettingsFromServer() {
 		Stats.setProgramStatus("Loading settings from server...");
 		Out.info("Connecting to the Hentai@Home Server to register client with ID " + Settings.getClientID() + "...");
-		
+
 		try {
 			do {
-				if(!refreshServerStat()) {
-					HentaiAtHomeClient.dieWithError("Failed to get initial stat from server.");				
-				}	
+				if (!refreshServerStat()) {
+					HentaiAtHomeClient.dieWithError("Failed to get initial stat from server.");
+				}
 
 				Out.info("Reading Hentai@Home client settings from server...");
 				ServerResponse sr = ServerResponse.getServerResponse(ServerHandler.ACT_CLIENT_LOGIN, this);
-				
-				if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
+
+				if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
 					loginValidated = true;
 					Out.info("Applying settings...");
 					Settings.parseAndUpdateSettings(sr.getResponseText());
 					Out.info("Finished applying settings");
 				}
-				else if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_NULL) {
+				else if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_NULL) {
 					HentaiAtHomeClient.dieWithError("Failed to get a login response from server.");
 				}
 				else {
 					Out.warning("\nAuthentication failed, please re-enter your Client ID and Key (Code: " + sr.getFailCode() + ")");
-					Settings.promptForIDAndKey(client.getInputQueryHandler());				
+					Settings.promptForIDAndKey(client.getInputQueryHandler());
 				}
-			} while(!loginValidated); 
-		} catch(Exception e) {
+			} while (!loginValidated);
+		} catch (Exception e) {
 			HentaiAtHomeClient.dieWithError(e);
 		}
 	}
@@ -287,11 +283,11 @@ public class ServerHandler {
 	public boolean refreshServerSettings() {
 		Out.info("Refreshing Hentai@Home client settings from server...");
 		ServerResponse sr = ServerResponse.getServerResponse(ServerHandler.ACT_CLIENT_SETTINGS, this);
-			
-		if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
+
+		if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
 			Settings.parseAndUpdateSettings(sr.getResponseText());
 			Out.info("Finished applying settings");
-			//client.getCacheHandler().recheckFreeDiskSpace();  - we're not bothering to recheck the free space as the client doesn't accept live reductions of disk space
+			// client.getCacheHandler().recheckFreeDiskSpace(); - we're not bothering to recheck the free space as the client doesn't accept live reductions of disk space
 			return true;
 		}
 		else {
@@ -299,13 +295,13 @@ public class ServerHandler {
 			return false;
 		}
 	}
-		
+
 	public boolean refreshServerStat() {
 		Stats.setProgramStatus("Getting initial stats from server...");
 		// get timestamp and minimum client build from server
 		ServerResponse sr = ServerResponse.getServerResponse(ServerHandler.ACT_SERVER_STAT, this);
 
-		if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
+		if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
 			Settings.parseAndUpdateSettings(sr.getResponseText());
 			return true;
 		}
@@ -313,28 +309,28 @@ public class ServerHandler {
 			return false;
 		}
 	}
-	
-	public Hashtable<String,String> getFileTokens(List<GalleryFile> requestTokens) {
+
+	public Hashtable<String, String> getFileTokens(List<GalleryFile> requestTokens) {
 		String tokens = "";
-		
-		for(GalleryFile gf : requestTokens) {
+
+		for (GalleryFile gf : requestTokens) {
 			tokens = tokens.concat(gf.getFileid() + ";");
 		}
-		
+
 		URL tokenURL = getServerConnectionURL(ACT_FILE_TOKENS, tokens);
 		ServerResponse sr = ServerResponse.getServerResponse(tokenURL, this);
-		
-		if(sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
-			Hashtable<String,String> tokenTable = new Hashtable<String,String>();
+
+		if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
+			Hashtable<String, String> tokenTable = new Hashtable<String, String>();
 			String[] split = sr.getResponseText();
-			
-			for(String s : split) {
-				if(! s.isEmpty()) {
+
+			for (String s : split) {
+				if (!s.isEmpty()) {
 					String[] s2 = s.split(" ", 2);
 					tokenTable.put(s2[0], s2[1]);
 				}
 			}
-			
+
 			return tokenTable;
 		} else {
 			Out.info("Could not grab token list - most likely the client has not been qualified yet. Will retry in a few minutes.");
@@ -346,30 +342,29 @@ public class ServerHandler {
 		return loginValidated;
 	}
 
-	
 	// these functions do not communicate with the RPC server, but are actions triggered by it through servercmd
 
-	public String downloadFilesFromServer(Hashtable<String,String> files) {
+	public String downloadFilesFromServer(Hashtable<String, String> files) {
 		StringBuffer returnText = new StringBuffer();
 		Enumeration<String> fileids = files.keys();
-		
+
 		try {
-			while(fileids.hasMoreElements()) {
+			while (fileids.hasMoreElements()) {
 				String file = fileids.nextElement();
 				String key = files.get(file);
-				
+
 				String[] s = file.split(":");
 				String fileid = s[0];
 				String host = s[1];
-				
+
 				// verify that we have valid ID and Key before we build an URL from it, in case the server has been compromised somehow...
-				if(HVFile.isValidHVFileid(fileid) && key.matches("^[0-9]{6}-[a-z0-9]{40}$")) {
+				if (HVFile.isValidHVFileid(fileid) && key.matches("^[0-9]{6}-[a-z0-9]{40}$")) {
 					URL source = new URL("http", host, 80, "/image.php?f=" + fileid + "&t=" + key);
-				
-					if(downloadAndCacheFile(source, fileid)) {
+
+					if (downloadAndCacheFile(source, fileid)) {
 						returnText.append(fileid + ":OK\n");
 					}
-					else {				
+					else {
 						returnText.append(fileid + ":FAIL\n");
 					}
 				}
@@ -377,98 +372,103 @@ public class ServerHandler {
 					returnText.append(fileid + ":INVALID\n");
 				}
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			Out.warning("Encountered error " + e + " when downloading image files from server. Will not retry.");
 		}
-		
+
 		return returnText.toString();
 	}
 
 	public String doProxyTest(String ipaddr, int port, String fileid, String keystamp) {
-		if(!HVFile.isValidHVFileid(fileid)) {
+		if (!HVFile.isValidHVFileid(fileid)) {
 			Out.error("Encountered an invalid fileid in doProxyTest: " + fileid);
 			return fileid + ":INVALID-0";
 		}
-		
+
 		try {
 			URL source = new URL("http", ipaddr, port, "/h/" + fileid + "/keystamp=" + keystamp + "/test.jpg");
-			Out.info("Running a proxy test against " + source + ".");		
+			Out.info("Running a proxy test against " + source + ".");
 
 			// determine the approximate ping time to the other client (if available, done on a best-effort basis). why isn't there a built-in ping in java anyway?
 			int pingtime = 0;
-			
+
 			// juuuuuust in case someone manages to inject a faulty IP address, we don't want to pass that unsanitized to an exec
-			if(!ipaddr.matches("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$")) {				
+			if (!ipaddr.matches("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$")) {
 				Out.warning("Invalid IP address: " + ipaddr);
 			}
 			else {
 				// make an educated guess on OS to access the built-in ping utility
-				String pingcmd = null;				
+				String pingcmd = null;
 				String whichOS = System.getProperty("os.name");
-				
-				if(whichOS != null) {
-					if(whichOS.toLowerCase().indexOf("windows") > -1) {
+
+				if (whichOS != null) {
+					if (whichOS.toLowerCase().indexOf("windows") > -1) {
 						// windows style
 						pingcmd = "ping " + ipaddr + " -n 3";
 					}
 				}
-				
-				if(pingcmd == null) {
+
+				if (pingcmd == null) {
 					// linux/unix/bsd/macos style
 					pingcmd = "ping " + ipaddr + " -c 3";
 				}
-				
+
 				Process p = null;
 				InputStreamReader isr = null;
 				BufferedReader br = null;
 				int pingresult = 0;
 				int pingcount = 0;
-				
+
 				try {
 					p = java.lang.Runtime.getRuntime().exec(pingcmd);
 					isr = new InputStreamReader(p.getInputStream());
 					br = new BufferedReader(isr);
-					
+
 					String read = null;
-					
-					while((read = br.readLine()) != null) {
-						// try to parse the ping result and extract the result. this will work as long as the time is enclosed between "time=" and "ms", which it should be both in windows and linux. YMMV. 
+
+					while ((read = br.readLine()) != null) {
+						// try to parse the ping result and extract the result. this will work as long as the time is enclosed between "time=" and "ms", which it should be both in windows and linux. YMMV.
 						int indexTime = read.indexOf("time=");
-						
-						if(indexTime >= 0) {
+
+						if (indexTime >= 0) {
 							int indexNumStart = indexTime + 5;
 							int indexNumEnd = read.indexOf("ms", indexNumStart);
-							
-							if(indexNumStart > 0 && indexNumEnd > 0) {
+
+							if (indexNumStart > 0 && indexNumEnd > 0) {
 								// parsing as double then casting, since linux gives a decimal number while windows doesn't
 								pingresult += (int) Double.parseDouble(read.substring(indexNumStart, indexNumEnd).trim());
 								++pingcount;
 							}
 						}
 					}
-					
-					if(pingcount > 0) {
+
+					if (pingcount > 0) {
 						pingtime = pingresult / pingcount;
 					}
-				} catch(Exception e) {
+				} catch (Exception e) {
 					Out.debug("Encountered exception " + e + " while trying to ping remote client");
 				} finally {
-					try { br.close(); isr.close(); p.destroy(); } catch(Exception e) {}
+					try {
+						br.close();
+						isr.close();
+						p.destroy();
+					} catch (Exception e) {
+					}
 				}
 			}
-			
-			if(pingtime > 0) {
+
+			if (pingtime > 0) {
 				Out.debug("Approximate latency determined as ~" + pingtime + " ms");
 			}
 			else {
 				Out.debug("Could not determine latency, conservatively guessing 20ms");
-				pingtime = 20;	// little to no compensation
+				pingtime = 20; // little to no compensation
 			}
-		
+
 			long startTime = System.currentTimeMillis();
-			
-			if(downloadAndCacheFile(source, fileid)) {
+
+			if (downloadAndCacheFile(source, fileid)) {
 				// this is mostly trial-and-error. we cut off 3 times the ping directly for TCP overhead (TCP three-way handshake + request/1st byte delay) , as well as cut off a factor of (1 second - pingtime) . this is capped to 200ms ping.
 				long dlMillis = System.currentTimeMillis() - startTime;
 				pingtime = Math.min(200, pingtime);
@@ -476,29 +476,29 @@ public class ServerHandler {
 				Out.debug("Clocked a download time of " + dlMillis + " ms. Ping delay fiddling reduced estimate to " + dlTime + " seconds.");
 				return fileid + ":OK-" + dlTime;
 			}
-		} catch(Exception e) {
-			Out.warning("Encountered error " + e + " when doing proxy test against " + ipaddr + ":" + port + " on file " + fileid + ". Will not retry.");		
+		} catch (Exception e) {
+			Out.warning("Encountered error " + e + " when doing proxy test against " + ipaddr + ":" + port + " on file " + fileid + ". Will not retry.");
 		}
-		
+
 		return fileid + ":FAIL-0";
 	}
-	
+
 	// used by doProxyTest and downloadFilesFromServer
 	private boolean downloadAndCacheFile(URL source, String fileid) {
-		if(HVFile.isValidHVFileid(fileid)) {
+		if (HVFile.isValidHVFileid(fileid)) {
 			CacheHandler ch = client.getCacheHandler();
 			File tmpfile = new File(CacheHandler.getTmpDir(), fileid);
 
-			if(tmpfile.exists()) {
+			if (tmpfile.exists()) {
 				tmpfile.delete();
 			}
-			
-			if(URLConnectionTools.saveFile(source, tmpfile, 10000, 30000)) {
+
+			if (URLConnectionTools.saveFile(source, tmpfile, 10000, 30000)) {
 				HVFile hvFile = HVFile.getHVFileFromFile(tmpfile, true);
-				
-				if(hvFile != null) {
-					if(!hvFile.getLocalFileRef().exists()) {
-						if(ch.moveFileToCacheDir(tmpfile, hvFile)) {
+
+				if (hvFile != null) {
+					if (!hvFile.getLocalFileRef().exists()) {
+						if (ch.moveFileToCacheDir(tmpfile, hvFile)) {
 							ch.addFileToActiveCache(hvFile);
 							Out.info("The file " + fileid + " was successfully downloaded and inserted into the active cache.");
 						}
@@ -526,14 +526,14 @@ public class ServerHandler {
 				Out.warning("Failed downloading file " + fileid + " from " + source + ". Will not retry.");
 			}
 
-			if(tmpfile.exists()) {
+			if (tmpfile.exists()) {
 				tmpfile.delete();
 			}
 		}
 		else {
 			Out.warning("Encountered invalid fileid " + fileid);
 		}
-		
+
 		return false;
-	}	
+	}
 }

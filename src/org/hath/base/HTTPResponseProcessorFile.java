@@ -23,9 +23,9 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.BufferedInputStream;
 
 // this class provides provides a buffered interface to read a file in chunks
 
@@ -41,17 +41,18 @@ public class HTTPResponseProcessorFile extends HTTPResponseProcessor {
 		off = 0;
 	}
 
+	@Override
 	public int initialize() {
 		int responseStatusCode = 0;
 
 		File file = requestedHVFile.getLocalFileRef();
 
-		if(file.exists()) {
+		if (file.exists()) {
 			try {
 				bis = new BufferedInputStream(new FileInputStream(file), Settings.isUseMoreMemory() ? 65536 : 8192);
 				responseStatusCode = 200;
 				Stats.fileSent();
-			} catch(java.io.IOException e) {
+			} catch (java.io.IOException e) {
 				Out.warning("Failed reading content from " + file);
 				responseStatusCode = 500;
 			}
@@ -62,23 +63,26 @@ public class HTTPResponseProcessorFile extends HTTPResponseProcessor {
 
 		return responseStatusCode;
 	}
-	
+
+	@Override
 	public void cleanup() {
-		if(bis != null) {
+		if (bis != null) {
 			try {
 				bis.close();
-			} catch(Exception e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
+	@Override
 	public String getContentType() {
 		return requestedHVFile.getMimeType();
 	}
 
+	@Override
 	public int getContentLength() {
-		if(bis != null) {
+		if (bis != null) {
 			return requestedHVFile.getSize();
 		}
 		else {
@@ -86,17 +90,19 @@ public class HTTPResponseProcessorFile extends HTTPResponseProcessor {
 		}
 	}
 
+	@Override
 	public byte[] getBytes() {
 		return getBytesRange(requestedHVFile.getSize());
 	}
 
+	@Override
 	public byte[] getBytesRange(int len) {
 		byte[] range = null;
-		
+
 		try {
 			range = new byte[len];
 			bis.read(range);
-		} catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 

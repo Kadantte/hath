@@ -23,48 +23,52 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
-import java.lang.Thread;
-
 public class HTTPResponseProcessorProxy extends HTTPResponseProcessor {
 	private HTTPSession session;
 	private GalleryFileDownloader gdf;
 	private int readoff;
-	
+
 	public HTTPResponseProcessorProxy(HTTPSession session, String fileid, String token, int gid, int page, String filename) {
 		this.session = session;
 		readoff = 0;
 		gdf = new GalleryFileDownloader(session.getHTTPServer().getHentaiAtHomeClient(), fileid, token, gid, page, filename, false);
 	}
 
+	@Override
 	public int initialize() {
 		Out.info(session + ": Initializing proxy request...");
 		return gdf.initialize();
-	}	
+	}
 
+	@Override
 	public String getContentType() {
 		return gdf.getContentType();
 	}
 
+	@Override
 	public int getContentLength() {
 		return gdf.getContentLength();
 	}
 
+	@Override
 	public byte[] getBytes() {
 		return getBytesRange(getContentLength());
 	}
 
+	@Override
 	public byte[] getBytesRange(int len) {
 		// wait for data
 		int endoff = readoff + len;
-		
-		//Out.debug("Reading data with readoff=" + readoff + " len=" + len + " writeoff=" + writeoff);
-		
-		while(endoff > gdf.getCurrentWriteoff()) {
+
+		// Out.debug("Reading data with readoff=" + readoff + " len=" + len + " writeoff=" + writeoff);
+
+		while (endoff > gdf.getCurrentWriteoff()) {
 			try {
 				Thread.sleep(10);
-			} catch(Exception e) {}
+			} catch (Exception e) {
+			}
 		}
-		
+
 		byte[] range = gdf.getDownloadBufferRange(readoff, endoff);
 		readoff += len;
 		return range;

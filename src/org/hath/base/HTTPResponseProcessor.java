@@ -33,16 +33,17 @@ public abstract class HTTPResponseProcessor {
 	public int getContentLength() {
 		return 0;
 	}
-	
+
 	public int initialize() {
 		return 0;
 	}
-	
-	public void cleanup() {}
+
+	public void cleanup() {
+	}
 
 	public abstract byte[] getBytes();
+
 	public abstract byte[] getBytesRange(int len);
-	
 
 	public String getHeader() {
 		return this.header;

@@ -24,13 +24,13 @@ along with Hentai@Home GUI.  If not, see <http://www.gnu.org/licenses/>.
 package org.hath.gui;
 
 public enum StorageUnit {
-	BYTE     ( "B", 1L),
-	KILOBYTE ("KB", 1L << 10),
-	MEGABYTE ("MB", 1L << 20),
-	GIGABYTE ("GB", 1L << 30),
-	TERABYTE ("TB", 1L << 40),
-	PETABYTE ("PB", 1L << 50),
-	EXABYTE  ("EB", 1L << 60);
+	BYTE("B", 1L),
+	KILOBYTE("KB", 1L << 10),
+	MEGABYTE("MB", 1L << 20),
+	GIGABYTE("GB", 1L << 30),
+	TERABYTE("TB", 1L << 40),
+	PETABYTE("PB", 1L << 50),
+	EXABYTE("EB", 1L << 60);
 
 	public static final StorageUnit BASE = BYTE;
 
@@ -56,13 +56,13 @@ public enum StorageUnit {
 			return TERABYTE;
 		} else if (n > -(1L << 60)) {
 			return PETABYTE;
-		} else {  // n >= Long.MIN_VALUE
+		} else { // n >= Long.MIN_VALUE
 			return EXABYTE;
 		}
 	}
 
 	public String format(long number) {
-		return nf.format((double)number / divider) + " " + symbol;
+		return nf.format((double) number / divider) + " " + symbol;
 	}
 
 	private static java.text.NumberFormat nf = java.text.NumberFormat.getInstance();
@@ -72,4 +72,4 @@ public enum StorageUnit {
 		nf.setMinimumFractionDigits(2);
 		nf.setMaximumFractionDigits(2);
 	}
-} 
+}

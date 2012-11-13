@@ -32,20 +32,20 @@ public class GalleryFile {
 	public static final int FILE_TEMPFAIL = -1;
 	public static final int FILE_PERMFAIL = -2;
 	public static final int FILE_INVALID_TOKEN = -3;
-	
+
 	public static final int STATE_PROCESSED_ERRORS = -1;
 	public static final int STATE_PENDING = 0;
 	public static final int STATE_PROCESSED = 1;
-	
+
 	private File todir, tofile;
 	private HVFile hvfile;
 	private String fileid, filename, token;
 	private int gid, page;
-	private long tokentime;	// tokens expire after about an hour, so we'll need to keep track of this in case a file repeatedly fails downloading
+	private long tokentime; // tokens expire after about an hour, so we'll need to keep track of this in case a file repeatedly fails downloading
 	private int state;
 	private int retrycount;
 	private long lastretry;
-	
+
 	private GalleryFile(HentaiAtHomeClient client, File todir, String fileid, int gid, int page, String filename) {
 		this.hvfile = HVFile.getHVFileFromFileid(fileid);
 
@@ -54,7 +54,7 @@ public class GalleryFile {
 		this.fileid = fileid;
 		this.gid = gid;
 		this.page = page;
-		
+
 		int fileExtIndex = filename.lastIndexOf(".");
 		this.filename = filename.substring(0, fileExtIndex > -1 ? fileExtIndex : Math.min(100, filename.length())).concat("." + hvfile.getType());
 		tofile = new File(todir, filename);
@@ -62,97 +62,98 @@ public class GalleryFile {
 		this.state = STATE_PENDING;
 		this.retrycount = 0;
 		this.lastretry = 0;
-		
+
 		Out.debug("Downloader: Pending download for " + fileid + " => " + filename);
 	}
-	
+
 	public static GalleryFile getGalleryFile(HentaiAtHomeClient client, File todir, String fileid, int gid, int page, String filename) {
-		if((client != null ) && (todir != null) && (fileid != null) && (gid > 0) && (page > 0) && (filename != null)) {
-			if(HVFile.isValidHVFileid(fileid) && (filename.length() > 0)) {
+		if ((client != null) && (todir != null) && (fileid != null) && (gid > 0) && (page > 0) && (filename != null)) {
+			if (HVFile.isValidHVFileid(fileid) && (filename.length() > 0)) {
 				return new GalleryFile(client, todir, fileid, gid, page, filename);
 			}
 		}
-		
-		Out.warning("Invalid GalleryFile " + fileid + " (" + filename + ")");		
+
+		Out.warning("Invalid GalleryFile " + fileid + " (" + filename + ")");
 		return null;
 	}
-	
+
 	public void setNewToken(String token) {
 		this.token = token;
 		this.tokentime = System.currentTimeMillis();
 	}
-	
+
 	public int getState() {
 		return state;
 	}
-	
+
 	public String getFileid() {
 		return fileid;
 	}
-	
+
 	public int attemptDownload() {
 		// wait at least six minutes between each download attempt, to allow the host routing cache to clear. increase retry delay by 6 minutes per fail.
-		if(System.currentTimeMillis() < lastretry + 360000 * retrycount) {
+		if (System.currentTimeMillis() < lastretry + 360000 * retrycount) {
 			return FILE_TEMPFAIL;
 		}
-			
+
 		// just in case, check for directory traversal
-		if(! tofile.getParentFile().equals(todir)) {
+		if (!tofile.getParentFile().equals(todir)) {
 			state = STATE_PROCESSED_ERRORS;
 			return FILE_PERMFAIL;
 		}
-		
+
 		// was the file already downloaded?
-		if(tofile.isFile()) {
+		if (tofile.isFile()) {
 			Out.debug("Downloader: " + tofile + " already exists - marking as completed");
 			state = STATE_PROCESSED;
 			return FILE_SUCCESS;
 		}
-		
-		boolean validToken = tokentime > System.currentTimeMillis() - 3600000;		
+
+		boolean validToken = tokentime > System.currentTimeMillis() - 3600000;
 		File fromfile = hvfile.getLocalFileRef();
-		
+
 		// try to download if it doesn't exist and we have a token
-		if(validToken && !fromfile.isFile()) {
+		if (validToken && !fromfile.isFile()) {
 			Out.debug("Downloader: " + tofile + " - initializing GalleryFileDownloader");
 			GalleryFileDownloader gfd = new GalleryFileDownloader(client, fileid, token, gid, page, filename, retrycount > 3);
 			gfd.initialize();
-			
+
 			int sleepTime = 1000;
 			int runTime = 0;
-			
+
 			// we check every second, and give it max five minutes before moving on. if gfd finishes it after we give up, it will be caught on the next pass-through.
 			do {
 				try {
 					Thread.sleep(sleepTime);
 					runTime += sleepTime;
-				} catch(java.lang.InterruptedException e) {}
-			} while((gfd.getDownloadState() == GalleryFileDownloader.DOWNLOAD_PENDING) && (runTime < 300000));
+				} catch (java.lang.InterruptedException e) {
+				}
+			} while ((gfd.getDownloadState() == GalleryFileDownloader.DOWNLOAD_PENDING) && (runTime < 300000));
 		}
-		
-		if(fromfile.isFile()) {
+
+		if (fromfile.isFile()) {
 			// copy the file to the output directory, and we're done
 			FileTools.copy(fromfile, tofile);
 			Out.debug("Downloader: " + fromfile + " copied to " + tofile);
 			state = STATE_PROCESSED;
 			return FILE_SUCCESS;
-		} else if(!validToken) {
+		} else if (!validToken) {
 			// we need a token for this file before we can download it
 			return FILE_INVALID_TOKEN;
 		} else {
 			// download was attempted but failed - flag necessary conditions for retry
-			
+
 			lastretry = System.currentTimeMillis();
-		
-			if(++retrycount > 100) {
+
+			if (++retrycount > 100) {
 				try {
 					(new File(todir, filename + ".fail")).createNewFile();
 					Out.debug("Downloader: Permanently failing download of " + fileid);
-				} catch(java.io.IOException e) {
+				} catch (java.io.IOException e) {
 					Out.warning("Downloader: Failed to create empty .fail file");
 					e.printStackTrace();
 				}
-				
+
 				state = STATE_PROCESSED_ERRORS;
 				return FILE_PERMFAIL;
 			} else {

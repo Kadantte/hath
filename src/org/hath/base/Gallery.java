@@ -45,62 +45,61 @@ public class Gallery {
 		this.information = information;
 		this.galleryFiles = galleryFiles;
 		this.state = STATE_PENDING;
-		
+
 		Out.debug("Downloader: Download session for gallery " + title + " is now pending");
 	}
-	
+
 	public int getState() {
 		return state;
 	}
-	
+
 	// takes and modifies list of the files that needs a token - these are borked together and requested by the main thread
 	public void galleryPass(List<GalleryFile> requestTokens) {
 		boolean allFilesProcessed = true;
 		boolean errorsEncountered = false;
-		
-		for(GalleryFile gf : galleryFiles) {
-			if(client.isShuttingDown()) {
+
+		for (GalleryFile gf : galleryFiles) {
+			if (client.isShuttingDown()) {
 				break;
 			}
-			
-			if(gf == null) {
+
+			if (gf == null) {
 				errorsEncountered = true;
 				continue;
 			}
-		
+
 			int gfstate = gf.getState();
-		
-			if(gfstate == STATE_PENDING) {
+
+			if (gfstate == STATE_PENDING) {
 				allFilesProcessed = false;
-				
-				if(gf.attemptDownload() == GalleryFile.FILE_INVALID_TOKEN) {
-					if(! requestTokens.contains(gf) && requestTokens.size() < 20) {
+
+				if (gf.attemptDownload() == GalleryFile.FILE_INVALID_TOKEN) {
+					if (!requestTokens.contains(gf) && requestTokens.size() < 20) {
 						requestTokens.add(gf);
 					}
 				}
-			} else if(gfstate == STATE_PROCESSED_ERRORS) {
+			} else if (gfstate == STATE_PROCESSED_ERRORS) {
 				errorsEncountered = true;
 			}
 		}
-		
-		if(allFilesProcessed) {
-			if(errorsEncountered) {
+
+		if (allFilesProcessed) {
+			if (errorsEncountered) {
 				Out.info("Downloader: Finished downloading gallery " + title + ", but some files could not be retrieved");
 				state = STATE_PROCESSED_ERRORS;
 			} else {
 				Out.info("Downloader: Finished downloading gallery " + title);
 				state = STATE_PROCESSED;
 			}
-			
+
 			try {
 				FileTools.putStringFileContentsUTF8(new File(todir, "galleryinfo.txt"), information);
-			} catch(java.io.IOException e) {
+			} catch (java.io.IOException e) {
 				Out.warning("Downloader: Could not write galleryinfo file");
 				e.printStackTrace();
 			}
-			
+
 			hhdlFile.delete();
 		}
 	}
 }
-

@@ -47,54 +47,54 @@ public class ServerResponse {
 	}
 
 	public static ServerResponse getServerResponse(String act, ServerHandler retryhandler) {
-		URL	serverConnectionURL = ServerHandler.getServerConnectionURL(act);
+		URL serverConnectionURL = ServerHandler.getServerConnectionURL(act);
 		return getServerResponse(serverConnectionURL, retryhandler, act);
 	}
-	
+
 	public static ServerResponse getServerResponse(URL serverConnectionURL, ServerHandler retryhandler) {
 		return getServerResponse(serverConnectionURL, retryhandler, null);
 	}
-	
+
 	private static ServerResponse getServerResponse(URL serverConnectionURL, ServerHandler retryhandler, String retryact) {
 		String serverResponse = URLConnectionTools.getTextContent(serverConnectionURL, 3600000);
 
-		if(serverResponse == null) {
+		if (serverResponse == null) {
 			return new ServerResponse(RESPONSE_STATUS_NULL, "NO_RESPONSE");
 		}
-		else if(serverResponse.length() < 1) {
+		else if (serverResponse.length() < 1) {
 			return new ServerResponse(RESPONSE_STATUS_NULL, "NO_RESPONSE");
 		}
 
 		String[] split = serverResponse.split("\n");
 
-		if(split.length < 1) {
+		if (split.length < 1) {
 			return new ServerResponse(RESPONSE_STATUS_NULL, "NO_RESPONSE");
 		}
-		else if(split[0].startsWith("Log Code") || split[0].startsWith("Database Error")) {
+		else if (split[0].startsWith("Log Code") || split[0].startsWith("Database Error")) {
 			return new ServerResponse(RESPONSE_STATUS_NULL, "SERVER_ERROR");
 		}
-		else if(split[0].startsWith("TEMPORARILY_UNAVAILABLE")) {
+		else if (split[0].startsWith("TEMPORARILY_UNAVAILABLE")) {
 			return new ServerResponse(RESPONSE_STATUS_NULL, "TEMPORARILY_UNAVAILABLE");
 		}
-		else if(split[0].equals("OK")) {
+		else if (split[0].equals("OK")) {
 			Stats.serverContact();
 			return new ServerResponse(RESPONSE_STATUS_OK, java.util.Arrays.copyOfRange(split, 1, split.length));
 		}
-		else if(split[0].equals("KEY_EXPIRED") && retryhandler != null && retryact != null) {
+		else if (split[0].equals("KEY_EXPIRED") && retryhandler != null && retryact != null) {
 			Out.warning("Server reported expired key; attempting to refresh time from server and retrying");
 			retryhandler.refreshServerStat();
 			return getServerResponse(ServerHandler.getServerConnectionURL(retryact), null);
 		}
 		else {
 			return new ServerResponse(RESPONSE_STATUS_FAIL, split[0]);
-		}	
+		}
 	}
 
 	public String toString() {
 		java.lang.StringBuffer sb = new java.lang.StringBuffer();
 
-		if(responseText != null) {
-			for(String s : responseText) {
+		if (responseText != null) {
+			for (String s : responseText) {
 				sb.append(s + ",");
 			}
 		}

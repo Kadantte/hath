@@ -24,12 +24,13 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 package org.hath.base;
 
 import java.util.LinkedList;
+
 import org.hath.base.CacheHandler.CacheListFile;
 
 public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 	private CacheHandler cacheHandler;
 	private int max_filesize, max_filecount;
-	
+
 	private int cacheListStrlen;
 	private StringBuilder fileidBuffer;
 	private int fileidOffset, fileidCount;
@@ -41,7 +42,7 @@ public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 		this.max_filecount = max_filecount;
 		this.bufferFilenum = Settings.isUseMoreMemory() ? 25000 : 1000;
 	}
-	
+
 	public int initialize() {
 		Out.info("Calculating cache file list parameters and preparing for send...");
 		cacheListStrlen = cacheHandler.getCachedFilesStrlen(max_filesize, max_filecount);
@@ -50,47 +51,47 @@ public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 		fileidBuffer = new StringBuilder(65 * bufferFilenum);
 		fileidOffset = 0;
 		fileidCount = 0;
-		
+
 		Out.info("Sending cache list, and waiting for the server to register the cached files.. (this could take a while)");
-		
+
 		return 200;
 	}
 
 	public int getContentLength() {
 		return cacheListStrlen;
 	}
-	
+
 	public byte[] getBytes() {
 		return getBytesRange(cacheListStrlen);
 	}
-	
+
 	public byte[] getBytesRange(int len) {
-		while(fileidBuffer.length() < len) {
+		while (fileidBuffer.length() < len) {
 			int buflen = Math.min(Math.min(cacheHandler.getCacheCount(), max_filecount) - fileidCount, bufferFilenum);
 
 			LinkedList<CacheListFile> cachedFiles = cacheHandler.getCachedFilesRange(fileidOffset, buflen);
-			if(cachedFiles.size() < 1) {
-				HentaiAtHomeClient.dieWithError("Failed to buffer requested data for cache list write. (fileidBuffer=" + fileidBuffer.length() +", len=" + len + ", max_filecount=" + max_filecount + ", max_filesize=" + max_filesize + ", fileidOffset=" + fileidOffset + ", buflen=" + buflen + ")");
+			if (cachedFiles.size() < 1) {
+				HentaiAtHomeClient.dieWithError("Failed to buffer requested data for cache list write. (fileidBuffer=" + fileidBuffer.length() + ", len=" + len + ", max_filecount=" + max_filecount + ", max_filesize=" + max_filesize + ", fileidOffset=" + fileidOffset + ", buflen=" + buflen + ")");
 			}
-			
-			for(CacheListFile file : cachedFiles) {
-				if(file.getFilesize() <= max_filesize) {
+
+			for (CacheListFile file : cachedFiles) {
+				if (file.getFilesize() <= max_filesize) {
 					fileidBuffer.append(file.getFileid() + "\n");
 					++fileidCount;
 				}
 			}
-			
+
 			fileidOffset += buflen;
 		}
-		
+
 		byte[] returnBytes = fileidBuffer.substring(0, len).getBytes(java.nio.charset.Charset.forName("ISO-8859-1"));
 		fileidBuffer.delete(0, len);
 
-		if(returnBytes.length != len) {
+		if (returnBytes.length != len) {
 			HentaiAtHomeClient.dieWithError("Length of cache list buffer (" + returnBytes.length + ") does not match requested length (" + len + ")! Bad program!");
 		}
-		
+
 		return returnBytes;
 	}
-	
+
 }

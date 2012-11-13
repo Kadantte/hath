@@ -24,8 +24,8 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 package org.hath.base;
 
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class InputQueryHandlerCLI implements InputQueryHandler {
 	private BufferedReader cmdreader;
@@ -33,24 +33,25 @@ public class InputQueryHandlerCLI implements InputQueryHandler {
 	private InputQueryHandlerCLI() {
 		cmdreader = new BufferedReader(new InputStreamReader(System.in));
 	}
-	
+
 	public static InputQueryHandlerCLI getIQHCLI() throws IOException {
 		return new InputQueryHandlerCLI();
 	}
-	
+
 	public String queryString(String querytext) {
 		System.out.print(querytext + ": ");
 		String s = null;
-		
+
 		try {
 			s = cmdreader.readLine();
-		} catch(IOException e) {}
-		
-		if(s == null) {
+		} catch (IOException e) {
+		}
+
+		if (s == null) {
 			System.out.print("Interrupted");
 			Settings.getActiveClient().shutdown();
 		}
-		
+
 		return s;
 	}
 }

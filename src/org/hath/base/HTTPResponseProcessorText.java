@@ -31,7 +31,7 @@ public class HTTPResponseProcessorText extends HTTPResponseProcessor {
 	private int off;
 	private String contentType;
 
-	public HTTPResponseProcessorText(String responseBody) {	
+	public HTTPResponseProcessorText(String responseBody) {
 		this(responseBody, "text/html");
 	}
 
@@ -41,15 +41,15 @@ public class HTTPResponseProcessorText extends HTTPResponseProcessor {
 
 	public HTTPResponseProcessorText(String responseBody, String mimeType, Charset charset) {
 		int strlen = responseBody.length();
-		
-		if(strlen > 0) {
+
+		if (strlen > 0) {
 			Out.debug("Response Written:");
 
-			if(strlen < 10000) {
+			if (strlen < 10000) {
 				Out.debug(responseBody);
 			}
 			else {
-				Out.debug("tl;dw");		
+				Out.debug("tl;dw");
 			}
 		}
 
@@ -57,9 +57,9 @@ public class HTTPResponseProcessorText extends HTTPResponseProcessor {
 		off = 0;
 		contentType = mimeType + "; charset=" + charset.name();
 	}
-	
+
 	public int getContentLength() {
-		if(responseBytes != null) {
+		if (responseBytes != null) {
 			return responseBytes.length;
 		}
 		else {
@@ -70,11 +70,11 @@ public class HTTPResponseProcessorText extends HTTPResponseProcessor {
 	public String getContentType() {
 		return this.contentType;
 	}
-	
+
 	public byte[] getBytes() {
 		return responseBytes;
 	}
-	
+
 	public byte[] getBytesRange(int len) {
 		byte[] range = Arrays.copyOfRange(responseBytes, off, Math.min(responseBytes.length, off + len));
 		off += len;

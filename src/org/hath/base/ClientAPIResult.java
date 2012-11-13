@@ -32,7 +32,7 @@ public class ClientAPIResult {
 		this.command = command;
 		this.resultText = resultText;
 	}
-	
+
 	public String getResultText() {
 		return resultText;
 	}

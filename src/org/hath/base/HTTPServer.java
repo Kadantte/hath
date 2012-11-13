@@ -40,7 +40,7 @@ public class HTTPServer implements Runnable {
 	private List<HTTPSession> sessions;
 	private int currentConnId;
 	private boolean allowNormalConnections;
-	private Hashtable<String,FloodControlEntry> floodControlTable;
+	private Hashtable<String, FloodControlEntry> floodControlTable;
 
 	public HTTPServer(HentaiAtHomeClient client) {
 		this.client = client;
@@ -50,14 +50,14 @@ public class HTTPServer implements Runnable {
 		myThread = null;
 		currentConnId = 0;
 		allowNormalConnections = false;
-		floodControlTable = new Hashtable<String,FloodControlEntry>();
+		floodControlTable = new Hashtable<String, FloodControlEntry>();
 	}
 
 	public boolean startConnectionListener(int port) {
 		try {
 			Out.info("Starting up the internal HTTP Server...");
 
-			if(ss != null) {
+			if (ss != null) {
 				stopConnectionListener();
 			}
 
@@ -68,7 +68,7 @@ public class HTTPServer implements Runnable {
 			Out.info("Internal HTTP Server was successfully started, and is listening on port " + port);
 
 			return true;
-		} catch(Exception e) {
+		} catch (Exception e) {
 			allowNormalConnections();
 
 			e.printStackTrace();
@@ -85,10 +85,11 @@ public class HTTPServer implements Runnable {
 	}
 
 	public void stopConnectionListener() {
-		if(ss != null) {
+		if (ss != null) {
 			try {
-				ss.close();	// will cause ss.accept() to throw an exception, terminating the accept thread
-			} catch(Exception e) {}
+				ss.close(); // will cause ss.accept() to throw an exception, terminating the accept thread
+			} catch (Exception e) {
+			}
 			ss = null;
 		}
 	}
@@ -96,17 +97,17 @@ public class HTTPServer implements Runnable {
 	public void pruneFloodControlTable() {
 		List<String> toPrune = Collections.checkedList(new ArrayList<String>(), String.class);
 
-		synchronized(floodControlTable) {
+		synchronized (floodControlTable) {
 			Enumeration<String> keys = floodControlTable.keys();
 
-			while(keys.hasMoreElements()) {
+			while (keys.hasMoreElements()) {
 				String key = keys.nextElement();
-				if(floodControlTable.get(key).isStale()) {
+				if (floodControlTable.get(key).isStale()) {
 					toPrune.add(key);
 				}
 			}
 
-			for(String key : toPrune) {
+			for (String key : toPrune) {
 				floodControlTable.remove(key);
 			}
 		}
@@ -117,17 +118,17 @@ public class HTTPServer implements Runnable {
 	}
 
 	public void nukeOldConnections(boolean killall) {
-		synchronized(sessions) {
+		synchronized (sessions) {
 			// in some rare cases, the connection is unable to remove itself from the session list. if so, it will return true for doTimeoutCheck, meaning that we will have to clear it out from here instead
 			List<HTTPSession> remove = Collections.checkedList(new ArrayList<HTTPSession>(), HTTPSession.class);
 
-			for(HTTPSession session : sessions) {
-				if(session.doTimeoutCheck(killall)) {
+			for (HTTPSession session : sessions) {
+				if (session.doTimeoutCheck(killall)) {
 					remove.add(session);
 				}
 			}
 
-			for(HTTPSession session : remove) {
+			for (HTTPSession session : remove) {
 				sessions.remove(session);
 			}
 		}
@@ -139,13 +140,13 @@ public class HTTPServer implements Runnable {
 
 	public void run() {
 		try {
-			while(true) {
+			while (true) {
 				Socket s = ss.accept();
 
-				synchronized(sessions) {
+				synchronized (sessions) {
 					boolean forceClose = false;
 
-					//  private network: localhost, 127.x.y.z, 10.0.0.0 - 10.255.255.255, 172.16.0.0 - 172.31.255.255,  192.168.0.0 - 192.168.255.255, 169.254.0.0 -169.254.255.255
+					// private network: localhost, 127.x.y.z, 10.0.0.0 - 10.255.255.255, 172.16.0.0 - 172.31.255.255, 192.168.0.0 - 192.168.255.255, 169.254.0.0 -169.254.255.255
 
 					InetAddress addr = s.getInetAddress();
 					String addrString = addr.toString();
@@ -153,37 +154,37 @@ public class HTTPServer implements Runnable {
 					boolean localNetworkAccess = java.util.regex.Pattern.matches("^((" + myInetAddr + ")|(localhost)|(127\\.)|(10\\.)|(192\\.168\\.)|(172\\.((1[6-9])|(2[0-9])|(3[0-1]))\\.)|(169\\.254\\.)).*$", addr.getHostAddress());
 					boolean apiServerAccess = Settings.isValidRPCServer(addr);
 
-					if(!apiServerAccess && !allowNormalConnections) {
+					if (!apiServerAccess && !allowNormalConnections) {
 						Out.warning("Rejecting connection request during startup.");
 						forceClose = true;
-					} else if(!apiServerAccess && !localNetworkAccess) {
+					} else if (!apiServerAccess && !localNetworkAccess) {
 						// connections from the API Server and the local network are not subject to the max connection limit or the flood control
 
 						int maxConnections = Settings.getMaxConnections();
 						int currentConnections = sessions.size();
 
-						if(currentConnections > maxConnections) {
+						if (currentConnections > maxConnections) {
 							Out.warning("Exceeded the maximum allowed number of incoming connections (" + maxConnections + ").");
 							forceClose = true;
 						}
 						else {
-							if(currentConnections > maxConnections * 0.8) {
+							if (currentConnections > maxConnections * 0.8) {
 								// let the dispatcher know that we're close to the breaking point. this will make it back off for 30 sec, and temporarily turns down the dispatch rate to half.
 								client.getServerHandler().notifyOverload();
 							}
 
 							// this flood control will stop clients from opening more than ten connections over a (roughly) five second floating window, and forcibly block them for 60 seconds if they do.
 							FloodControlEntry fce = null;
-							synchronized(floodControlTable) {
+							synchronized (floodControlTable) {
 								fce = floodControlTable.get(addrString);
-								if(fce == null) {
+								if (fce == null) {
 									fce = new FloodControlEntry(addr);
 									floodControlTable.put(addrString, fce);
 								}
 							}
 
-							if(!fce.isBlocked()) {
-								if(!fce.hit()) {
+							if (!fce.isBlocked()) {
+								if (!fce.hit()) {
 									Out.warning("Flood control activated for  " + addrString + " (blocking for 60 seconds)");
 									forceClose = true;
 								}
@@ -194,8 +195,11 @@ public class HTTPServer implements Runnable {
 						}
 					}
 
-					if(forceClose) {
-						try { s.close(); } catch(Exception e) { /* LALALALALA */ }
+					if (forceClose) {
+						try {
+							s.close();
+						} catch (Exception e) { /* LALALALALA */
+						}
 					}
 					else {
 						s.setReceiveBufferSize(131072);
@@ -210,7 +214,7 @@ public class HTTPServer implements Runnable {
 					}
 				}
 			}
-		} catch(java.io.IOException e) {
+		} catch (java.io.IOException e) {
 			Out.warning("ServerSocket terminated while waiting for connection");
 			ss = null;
 		}
@@ -221,7 +225,7 @@ public class HTTPServer implements Runnable {
 	}
 
 	public void removeHTTPSession(HTTPSession httpSession) {
-		synchronized(sessions) {
+		synchronized (sessions) {
 			sessions.remove(httpSession);
 			Stats.setOpenConnections(sessions.size());
 		}
@@ -262,8 +266,8 @@ public class HTTPServer implements Runnable {
 			connectCount = Math.max(0, connectCount - (int) Math.floor((nowtime - lastConnect) / 1000)) + 1;
 			lastConnect = nowtime;
 
-			if(connectCount > 10) {
-				blocktime = nowtime + 60000;	// block this client from connecting for 60 seconds
+			if (connectCount > 10) {
+				blocktime = nowtime + 60000; // block this client from connecting for 60 seconds
 				return false;
 			}
 			else {

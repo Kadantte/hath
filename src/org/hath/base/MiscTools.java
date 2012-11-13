@@ -23,24 +23,24 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.util.Hashtable;
 
 public class MiscTools {
 
 	// these two functions are used to process servercmd type GETs
-	public static Hashtable<String,String> parseAdditional(String additional) {
-		Hashtable<String,String> addTable = new Hashtable<String,String>();
+	public static Hashtable<String, String> parseAdditional(String additional) {
+		Hashtable<String, String> addTable = new Hashtable<String, String>();
 
-		if(additional != null) {
-			if(!additional.isEmpty()) {
+		if (additional != null) {
+			if (!additional.isEmpty()) {
 				String[] keyValuePairs = additional.trim().split(";");
 
-				for(String kvPair : keyValuePairs) {
-					if(kvPair.length() > 2) {
+				for (String kvPair : keyValuePairs) {
+					if (kvPair.length() > 2) {
 						String[] kvPairParts = kvPair.trim().split("=", 2);
 
-						if(kvPairParts.length == 2) {
+						if (kvPairParts.length == 2) {
 							addTable.put(kvPairParts[0].trim(), kvPairParts[1].trim());
 						}
 						else {
@@ -70,23 +70,21 @@ public class MiscTools {
 			byte[] keybytes = md.digest(bytes);
 			sb = new java.lang.StringBuffer(keybytes.length * 2);
 
-			for(byte b : keybytes) {
+			for (byte b : keybytes) {
 				String s = Integer.toHexString((int) b & 0xff);
 				sb.append((s.length() < 2 ? "0" : "") + s);
 			}
-			
+
 			// for some reason this doesn't appear to be releasing properly, so we'll do it manually...
 			md.reset();
 			md = null;
 			bytes = null;
 			keybytes = null;
-		} catch(java.security.NoSuchAlgorithmException e) {
+		} catch (java.security.NoSuchAlgorithmException e) {
 			HentaiAtHomeClient.dieWithError(e);
 		}
 
 		return sb == null ? null : sb.toString().toLowerCase();
 	}
-
-
 
 }

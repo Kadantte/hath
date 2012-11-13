@@ -44,35 +44,35 @@ public class HTTPResponse {
 		servercmd = false;
 		requestHeadOnly = false;
 
-		responseStatusCode = 500;	// if nothing alters this, there's a bug somewhere
+		responseStatusCode = 500; // if nothing alters this, there's a bug somewhere
 	}
 
 	private HTTPResponseProcessor processRemoteAPICommand(String command, String additional) {
-		Hashtable<String,String> addTable = MiscTools.parseAdditional(additional);
+		Hashtable<String, String> addTable = MiscTools.parseAdditional(additional);
 		HentaiAtHomeClient client = session.getHTTPServer().getHentaiAtHomeClient();
 
 		try {
-			if(command.equalsIgnoreCase("still_alive")) {
+			if (command.equalsIgnoreCase("still_alive")) {
 				return new HTTPResponseProcessorText("I feel FANTASTIC and I'm still alive");
-			} else if(command.equalsIgnoreCase("cache_list")) {
+			} else if (command.equalsIgnoreCase("cache_list")) {
 				String max_filesize = addTable.get("max_filesize");
 				String max_filecount = addTable.get("max_filecount");
 				return new HTTPResponseProcessorCachelist(client.getCacheHandler(), max_filesize != null ? Integer.parseInt(max_filesize) : 0, max_filecount != null ? Integer.parseInt(max_filecount) : 0);
-			} else if(command.equalsIgnoreCase("cache_files")) {
+			} else if (command.equalsIgnoreCase("cache_files")) {
 				return new HTTPResponseProcessorText(client.getServerHandler().downloadFilesFromServer(addTable));
-			} else if(command.equalsIgnoreCase("proxy_test")) {
+			} else if (command.equalsIgnoreCase("proxy_test")) {
 				String ipaddr = addTable.get("ipaddr");
 				int port = Integer.parseInt(addTable.get("port"));
 				String fileid = addTable.get("fileid");
 				String keystamp = addTable.get("keystamp");
 				return new HTTPResponseProcessorText(client.getServerHandler().doProxyTest(ipaddr, port, fileid, keystamp));
-			} else if(command.equalsIgnoreCase("speed_test")) {
+			} else if (command.equalsIgnoreCase("speed_test")) {
 				String testsize = addTable.get("testsize");
 				return new HTTPResponseProcessorSpeedtest(testsize != null ? Integer.parseInt(testsize) : 1000000);
-			} else if(command.equalsIgnoreCase("refresh_settings")) {
-				return new HTTPResponseProcessorText(client.getServerHandler().refreshServerSettings()+"");
+			} else if (command.equalsIgnoreCase("refresh_settings")) {
+				return new HTTPResponseProcessorText(client.getServerHandler().refreshServerSettings() + "");
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			Out.warning(session + " Failed to process command");
 		}
@@ -81,33 +81,33 @@ public class HTTPResponse {
 	}
 
 	public void parseRequest(String request, boolean localNetworkAccess) {
-		if(request == null) {
+		if (request == null) {
 			responseStatusCode = 400;
-			return;		
+			return;
 		}
-	
+
 		String[] requestParts = request.trim().split(" ", 3);
 
-		if(requestParts.length != 3) {
+		if (requestParts.length != 3) {
 			Out.warning(session + " Invalid HTTP request form.");
-		} else if( !(requestParts[0].equalsIgnoreCase("GET") || requestParts[0].equalsIgnoreCase("HEAD")) || !requestParts[2].startsWith("HTTP/") ) {
+		} else if (!(requestParts[0].equalsIgnoreCase("GET") || requestParts[0].equalsIgnoreCase("HEAD")) || !requestParts[2].startsWith("HTTP/")) {
 			Out.warning(session + " HTTP request is not GET or HEAD.");
 			responseStatusCode = 405;
 			return;
 		} else {
 			validRequest = true;
 			requestHeadOnly = requestParts[0].equalsIgnoreCase("HEAD");
-			
+
 			// The request URI may be an absolute path or an absolute URI for GET/HEAD requests (see section 5.1.2 of RFC2616)
 			requestParts[1] = absoluteUriPattern.matcher(requestParts[1]).replaceFirst("/");
-			
+
 			String[] urlparts = requestParts[1].split("/");
 
-			if( (urlparts.length < 2) || !urlparts[0].equals("")) {
+			if ((urlparts.length < 2) || !urlparts[0].equals("")) {
 				Out.warning(session + " The requested URL is invalid or not supported.");
 			} else {
-				if(urlparts[1].equals("h")) {
-					if(urlparts.length < 4) {
+				if (urlparts[1].equals("h")) {
+					if (urlparts.length < 4) {
 						responseStatusCode = 400;
 						return;
 					}
@@ -116,7 +116,7 @@ public class HTTPResponse {
 					// we also put in an extension that allows us to add additional arguments to the request url without messing with old clients.
 
 					String hvfile = urlparts[2];
-					Hashtable<String,String> additional = MiscTools.parseAdditional(urlparts[3]);
+					Hashtable<String, String> additional = MiscTools.parseAdditional(urlparts[3]);
 					// urlparts[4] will contain the filename, but we don't actively use this
 
 					HVFile requestedHVFile = session.getHTTPServer().getHentaiAtHomeClient().getCacheHandler().getHVFile(hvfile, !localNetworkAccess);
@@ -124,23 +124,24 @@ public class HTTPResponse {
 					boolean keystampRejected = true;
 					String[] keystampParts = additional.get("keystamp").split("-");
 
-					if(keystampParts.length == 2) {
+					if (keystampParts.length == 2) {
 						try {
 							long keystampTime = Integer.parseInt(keystampParts[0]);
 
-							if(Math.abs(Settings.getServerTime() - keystampTime) < 900) {
-								if(keystampParts[1].equalsIgnoreCase( MiscTools.getSHAString(keystampTime + "-" + hvfile + "-" + Settings.getClientKey() + "-hotlinkthis").substring(0, 10) )) {
+							if (Math.abs(Settings.getServerTime() - keystampTime) < 900) {
+								if (keystampParts[1].equalsIgnoreCase(MiscTools.getSHAString(keystampTime + "-" + hvfile + "-" + Settings.getClientKey() + "-hotlinkthis").substring(0, 10))) {
 									keystampRejected = false;
 								}
 							}
-						} catch(Exception e) {}
+						} catch (Exception e) {
+						}
 					}
 
-					if(keystampRejected) {
+					if (keystampRejected) {
 						responseStatusCode = 403;
 						return;
 					}
-					else if(requestedHVFile == null) {
+					else if (requestedHVFile == null) {
 						Out.warning(session + " The requested file was invalid or not found in cache.");
 						responseStatusCode = 404;
 						return;
@@ -149,7 +150,7 @@ public class HTTPResponse {
 						hpc = new HTTPResponseProcessorFile(requestedHVFile);
 						return;
 					}
-				} else if(urlparts[1].equals("i")) {
+				} else if (urlparts[1].equals("i")) {
 					// remove this when all clients are upgraded to 1.0.4 r51
 
 					// this kind of request can be on two forms: /x/ab/cd/keystamp/abcd.*?-size-xres-yres-filetype.filetype .. the /ab/cd and additional extension is for dumber clients that do not invoke any custom programming to serve a file, so we'll strip that out in the process.
@@ -165,25 +166,26 @@ public class HTTPResponse {
 					String[] keystampParts = keystamp.split("-");
 
 					// after 0.4.2 was mandatory we could start doing this for all types of requests
-					if(keystampParts.length == 2) {
+					if (keystampParts.length == 2) {
 						try {
 							long keystampTime = Integer.parseInt(keystampParts[0]);
 
-							if(Math.abs(Settings.getServerTime() - keystampTime) < 900) {
+							if (Math.abs(Settings.getServerTime() - keystampTime) < 900) {
 								String expectedKey = MiscTools.getSHAString(keystampTime + "-" + fileparts[0] + "-" + Settings.getClientKey() + "-hotlinkthis").substring(0, 10);
-								if(keystampParts[1].equalsIgnoreCase(expectedKey)) {
+								if (keystampParts[1].equalsIgnoreCase(expectedKey)) {
 									keystampRejected = false;
 								}
 							}
-						} catch(Exception e) {}
+						} catch (Exception e) {
+						}
 					}
 
-					if(keystampRejected) {
-						//Out.warning(session + " Keystamp was invalid or not present.");
+					if (keystampRejected) {
+						// Out.warning(session + " Keystamp was invalid or not present.");
 						responseStatusCode = 403;
 						return;
 					}
-					else if(requestedHVFile == null) {
+					else if (requestedHVFile == null) {
 						Out.warning(session + " The requested file was invalid or not found in cache.");
 						responseStatusCode = 404;
 						return;
@@ -193,15 +195,15 @@ public class HTTPResponse {
 						return;
 					}
 				}
-				else if(urlparts[1].equals("servercmd")) {
+				else if (urlparts[1].equals("servercmd")) {
 					// form: /servercmd/$command/$additional/$time/$key
 
-					if(!Settings.isValidRPCServer(session.getSocketInetAddress())) {
+					if (!Settings.isValidRPCServer(session.getSocketInetAddress())) {
 						Out.warning(session + " Got a servercmd from an unauthorized IP address: Denied");
 						responseStatusCode = 403;
 						return;
 					}
-					else if(urlparts.length < 6) {
+					else if (urlparts.length < 6) {
 						Out.warning(session + " Got a malformed servercmd: Denied");
 						responseStatusCode = 403;
 						return;
@@ -214,7 +216,7 @@ public class HTTPResponse {
 
 						int correctedTime = Settings.getServerTime();
 
-						if((Math.abs(commandTime - correctedTime) < Settings.MAX_KEY_TIME_DRIFT) && MiscTools.getSHAString("hentai@home-servercmd-" + command + "-" + additional + "-" + Settings.getClientID() + "-" + commandTime + "-" + Settings.getClientKey()).equals(key)) {
+						if ((Math.abs(commandTime - correctedTime) < Settings.MAX_KEY_TIME_DRIFT) && MiscTools.getSHAString("hentai@home-servercmd-" + command + "-" + additional + "-" + Settings.getClientID() + "-" + commandTime + "-" + Settings.getClientKey()).equals(key)) {
 							responseStatusCode = 200;
 							servercmd = true;
 							hpc = processRemoteAPICommand(command, additional);
@@ -227,7 +229,7 @@ public class HTTPResponse {
 						}
 					}
 				}
-				else if(urlparts[1].equals("p")) {
+				else if (urlparts[1].equals("p")) {
 					// new proxy request type, used implicitly when the password field is set
 					// form: /p/fileid=asdf;token=asdf;gid=123;page=321;passkey=asdf/filename
 
@@ -243,48 +245,48 @@ public class HTTPResponse {
 					boolean requirePasskey = proxymode == 3 || proxymode == 4;
 					boolean requireLocalNetwork = proxymode == 1 || proxymode == 3;
 
-					if( !enableProxy || (requireLocalNetwork && !session.isLocalNetworkAccess()) ) {
+					if (!enableProxy || (requireLocalNetwork && !session.isLocalNetworkAccess())) {
 						Out.warning(session + " Proxy request denied for remote client.");
 					} else {
-						Hashtable<String,String> parsedRequest = MiscTools.parseAdditional(urlparts[2]);
+						Hashtable<String, String> parsedRequest = MiscTools.parseAdditional(urlparts[2]);
 
-						String fileid	= parsedRequest.get("fileid");
-						String token	= parsedRequest.get("token");
-						String szGid	= parsedRequest.get("gid");
-						String szPage	= parsedRequest.get("page");
-						String passkey	= parsedRequest.get("passkey");
-						String filename	= urlparts[3];
+						String fileid = parsedRequest.get("fileid");
+						String token = parsedRequest.get("token");
+						String szGid = parsedRequest.get("gid");
+						String szPage = parsedRequest.get("page");
+						String passkey = parsedRequest.get("passkey");
+						String filename = urlparts[3];
 
 						boolean acceptPasskey = false;
 
-						if(!requirePasskey) {
+						if (!requirePasskey) {
 							acceptPasskey = true;
-						} else if(passkey != null) {
+						} else if (passkey != null) {
 							// The client's passkey is generated by passing the client key through a SHA-1 function together with an additional string. This passkey is then entered under My Settings.
 							// The request passkey is generated by passing the client passkey through an additional SHA-1 operation, which also includes the fileid of the requested file. This gives an unique passkey for each request.
 
 							String expectedPasskey = MiscTools.getSHAString(
 								fileid + "I think we can put our differences behind us." + MiscTools.getSHAString(Settings.getClientKey() + "For science.").substring(0, 10) + "You monster."
-							).substring(0, 10);
+								).substring(0, 10);
 
-							if(expectedPasskey.equals(passkey)) {
+							if (expectedPasskey.equals(passkey)) {
 								acceptPasskey = true;
 							}
 						}
 
-						if(!acceptPasskey) {
+						if (!acceptPasskey) {
 							Out.warning(session + " Invalid passkey");
-						} else if( !(HVFile.isValidHVFileid(fileid) && token.matches("^\\d+-[a-z0-9]{40}$") && szGid.matches("^\\d+$") && szPage.matches("^\\d+$") && filename.matches("^(([a-zA-Z0-9])|(\\.)|(_))*$")) ) {
+						} else if (!(HVFile.isValidHVFileid(fileid) && token.matches("^\\d+-[a-z0-9]{40}$") && szGid.matches("^\\d+$") && szPage.matches("^\\d+$") && filename.matches("^(([a-zA-Z0-9])|(\\.)|(_))*$"))) {
 							Out.warning(session + " Failed argument validation");
 						} else {
 							try {
 								int gid = Integer.parseInt(szGid);
 								int page = Integer.parseInt(szPage);
 
-								if(gid > 0 && page > 0) {
+								if (gid > 0 && page > 0) {
 									HVFile requestedHVFile = session.getHTTPServer().getHentaiAtHomeClient().getCacheHandler().getHVFile(fileid, true);
 
-									if( (requestedHVFile != null) && (requestedHVFile.getLocalFileRef().exists()) ) {
+									if ((requestedHVFile != null) && (requestedHVFile.getLocalFileRef().exists())) {
 										hpc = new HTTPResponseProcessorFile(requestedHVFile);
 										return;
 									}
@@ -296,21 +298,21 @@ public class HTTPResponse {
 								else {
 									Out.warning(session + " gid and/or page are <= 0");
 								}
-							} catch(Exception e) {
+							} catch (Exception e) {
 								Out.warning(session + " gid and/or page are not valid integers");
 							}
 						}
 					}
 				}
-				else if(urlparts.length == 2) {
-					if(urlparts[1].equals("favicon.ico")) {
+				else if (urlparts.length == 2) {
+					if (urlparts[1].equals("favicon.ico")) {
 						// Redirect to the main website icon (which should already be in the browser cache).
 						hpc = new HTTPResponseProcessorText("");
 						hpc.addHeaderField("Location", "http://g.e-hentai.org/favicon.ico");
 						responseStatusCode = 301; // Moved Permanently
 						return;
 					}
-					else if(urlparts[1].equals("robots.txt")) {
+					else if (urlparts[1].equals("robots.txt")) {
 						// Bots are not welcome.
 						hpc = new HTTPResponseProcessorText("User-agent: *\nDisallow: /", "text/plain");
 						responseStatusCode = 200; // Found
@@ -334,35 +336,34 @@ public class HTTPResponse {
 	}
 
 	public HTTPResponseProcessor getHTTPResponseProcessor() {
-		if(hpc == null) {
-			//Out.info(session + " The remote host made an invalid request that could not be serviced.");
+		if (hpc == null) {
+			// Out.info(session + " The remote host made an invalid request that could not be serviced.");
 
 			hpc = new HTTPResponseProcessorText("An error has occurred. (" + responseStatusCode + ")");
-			
-			if(responseStatusCode == 405) {
+
+			if (responseStatusCode == 405) {
 				hpc.addHeaderField("Allow", "GET,HEAD");
 			}
 		}
-		else if(hpc instanceof HTTPResponseProcessorFile) {
+		else if (hpc instanceof HTTPResponseProcessorFile) {
 			responseStatusCode = hpc.initialize();
 		}
-		else if(hpc instanceof HTTPResponseProcessorProxy) {
+		else if (hpc instanceof HTTPResponseProcessorProxy) {
 			responseStatusCode = hpc.initialize();
 		}
-		else if(hpc instanceof HTTPResponseProcessorText) {
+		else if (hpc instanceof HTTPResponseProcessorText) {
 			// do nothing
 		}
-		else if(hpc instanceof HTTPResponseProcessorSpeedtest) {
+		else if (hpc instanceof HTTPResponseProcessorSpeedtest) {
 			Stats.setProgramStatus("Running speed tests...");
 		}
-		else if(hpc instanceof HTTPResponseProcessorCachelist) {
+		else if (hpc instanceof HTTPResponseProcessorCachelist) {
 			Stats.setProgramStatus("Building and sending cache list to server...");
 			hpc.initialize();
 		}
 
 		return hpc;
 	}
-
 
 	// accessors
 

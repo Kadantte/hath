@@ -23,7 +23,6 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
-import java.lang.Thread;
 
 public class HTTPBandwidthMonitor {
 	private int sleepTrigger;
@@ -31,21 +30,21 @@ public class HTTPBandwidthMonitor {
 	public HTTPBandwidthMonitor() {
 		sleepTrigger = 0;
 	}
-	
+
 	private double getMinMillisPerPacket() {
 		return Settings.getThrottleBytesPerSec() > 0 ? (1000.0 * getActualPacketSize() / (double) Settings.getThrottleBytesPerSec()) : 0.0;
 	}
-	
-	public synchronized void synchronizedWait(Thread thread) {		
+
+	public synchronized void synchronizedWait(Thread thread) {
 		long sleepTime = Math.round(getMinMillisPerPacket() * ++sleepTrigger + (Math.random() - 0.5));
-		//System.out.println(sleepTime);
-		
-		if(sleepTime > 2) {
+		// System.out.println(sleepTime);
+
+		if (sleepTime > 2) {
 			sleepTrigger = 0;
-			
+
 			try {
 				Thread.sleep(sleepTime);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
@@ -53,11 +52,11 @@ public class HTTPBandwidthMonitor {
 
 	// accessors
 	public int getActualPacketSize() {
-		if(Settings.getThrottleBytesPerSec() == 0 || Settings.getThrottleBytesPerSec() >= 15000) {
+		if (Settings.getThrottleBytesPerSec() == 0 || Settings.getThrottleBytesPerSec() >= 15000) {
 			return Settings.TCP_PACKET_SIZE_HIGH;
 		}
 		else {
 			return Settings.TCP_PACKET_SIZE_LOW;
 		}
-	}	
+	}
 }

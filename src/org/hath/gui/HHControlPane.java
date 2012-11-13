@@ -22,6 +22,7 @@ along with Hentai@Home GUI.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 package org.hath.gui;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -59,7 +60,7 @@ public class HHControlPane extends JPanel {
 
 	public void updateData() {
 		statPane.updateStats();
-		//graphPane.repaint(); - don't do this, it causes random warpings on the graph as well as a fairly high CPU usage.
+		// graphPane.repaint(); - don't do this, it causes random warpings on the graph as well as a fairly high CPU usage.
 	}
 
 	private class StatPane extends JPanel implements StatListener {
@@ -71,7 +72,7 @@ public class HHControlPane extends JPanel {
 			super();
 
 			setPreferredSize(new Dimension(500, 220));
-			setBorder(BorderFactory.createCompoundBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Program Stats"), BorderFactory.createEmptyBorder(5,5,5,5)), getBorder()));
+			setBorder(BorderFactory.createCompoundBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Program Stats"), BorderFactory.createEmptyBorder(5, 5, 5, 5)), getBorder()));
 			Stats.addStatListener(this);
 
 			repaint();
@@ -87,7 +88,7 @@ public class HHControlPane extends JPanel {
 
 		@Override
 		public void paint(Graphics g) {
-			if(!clientGUI.isShowing()) {
+			if (!clientGUI.isShowing()) {
 				return;
 			}
 
@@ -96,7 +97,7 @@ public class HHControlPane extends JPanel {
 
 			super.paint(g);
 
-			if(myFont == null) {
+			if (myFont == null) {
 				myFont = new Font("Sans-serif", Font.PLAIN, 10);
 			}
 
@@ -189,10 +190,10 @@ public class HHControlPane extends JPanel {
 			int severity = 0;
 			int toSeverity = Math.min(20, (int) Math.ceil(pct * 20));
 
-			while(++severity <= toSeverity) {
-				if(severity < 11) {
+			while (++severity <= toSeverity) {
+				if (severity < 11) {
 					g2.setColor(Color.GREEN);
-				} else if(severity < 16) {
+				} else if (severity < 16) {
 					g2.setColor(Color.ORANGE);
 				} else {
 					g2.setColor(Color.RED);
@@ -219,21 +220,21 @@ public class HHControlPane extends JPanel {
 			super();
 
 			setMinimumSize(new Dimension(500, 220));
-			setBorder(BorderFactory.createCompoundBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Beautiful Line"), BorderFactory.createEmptyBorder(5,5,5,5)), getBorder()));
+			setBorder(BorderFactory.createCompoundBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Beautiful Line"), BorderFactory.createEmptyBorder(5, 5, 5, 5)), getBorder()));
 			Stats.addStatListener(this);
 
 			repaint();
 		}
 
 		public void statChanged(String stat) {
-			if(stat.equals("bytesSentHistory")) {
+			if (stat.equals("bytesSentHistory")) {
 				repaint();
 			}
 		}
 
 		@Override
 		public void paint(Graphics g) {
-			if(!clientGUI.isShowing()) {
+			if (!clientGUI.isShowing()) {
 				return;
 			}
 
@@ -242,7 +243,7 @@ public class HHControlPane extends JPanel {
 
 			super.paint(g);
 
-			if(myFont == null) {
+			if (myFont == null) {
 				myFont = new Font("Sans-serif", Font.PLAIN, 10);
 			}
 
@@ -263,7 +264,7 @@ public class HHControlPane extends JPanel {
 
 			int barwidth = xwidth / 6;
 
-			for(int i=1; i<=5; i++) {
+			for (int i = 1; i <= 5; i++) {
 				int xpos = xoff + barwidth * i;
 				g2.drawLine(xpos, 21, xpos, 189);
 			}
@@ -275,7 +276,7 @@ public class HHControlPane extends JPanel {
 			int blipMaxHeight = blipBottom - blipTop;
 			int topSpeedKBps = -1;
 
-			if(heights == null || lastGraphRefresh < System.currentTimeMillis() - 10000) {
+			if (heights == null || lastGraphRefresh < System.currentTimeMillis() - 10000) {
 				// re-calculate stuff
 
 				heights = new int[360];
@@ -287,41 +288,41 @@ public class HHControlPane extends JPanel {
 				bytesLast60Min = 0;
 
 				// this correction was made to avoid the blips that are caused by the packets-instead-of-bytes measurements, but the method was changed so it's no longer necessary
-				//int forcedMaxBytesPerDecaSec = Settings.getThrottleBytesPerSec() > 0 ? Settings.getThrottleBytesPerSec() * 10 : Integer.MAX_VALUE;
+				// int forcedMaxBytesPerDecaSec = Settings.getThrottleBytesPerSec() > 0 ? Settings.getThrottleBytesPerSec() * 10 : Integer.MAX_VALUE;
 
 				// we'll use the throttle if set, and guess based on the outgoing speed the server has if not
 				double guessedMaxBytesPerDecaSec = 0;
 
-				if(Settings.getThrottleBytesPerSec() > 0 || Stats.getBytesSentPerSec() > 0) {
+				if (Settings.getThrottleBytesPerSec() > 0 || Stats.getBytesSentPerSec() > 0) {
 					guessedMaxBytesPerDecaSec = Math.min(Settings.getThrottleBytesPerSec() * 10.0, Stats.getBytesSentPerSec() * 30.0);
 				}
 
-				if(guessedMaxBytesPerDecaSec == 0) {
+				if (guessedMaxBytesPerDecaSec == 0) {
 					guessedMaxBytesPerDecaSec = 200000.0;
 				}
 
 				double actualMaxBytesPerDecaSec = 0;
 
 				int newi = 0;
-				for(int i=360; i>0; i--) {	// rly
-					int actualBytesSent = bytesSent[i]; //Math.min(forcedMaxBytesPerDecaSec, bytesSent[i]);
+				for (int i = 360; i > 0; i--) { // rly
+					int actualBytesSent = bytesSent[i]; // Math.min(forcedMaxBytesPerDecaSec, bytesSent[i]);
 					heights[newi++] = (int) Math.round((actualBytesSent / guessedMaxBytesPerDecaSec) * blipMaxHeight);
 					actualMaxBytesPerDecaSec = Math.max(actualBytesSent, actualMaxBytesPerDecaSec);
 
 					bytesLast60Min += actualBytesSent;
-					if(i <= 90) {
+					if (i <= 90) {
 						bytesLast15Min += actualBytesSent;
-						if(i <= 6) {
+						if (i <= 6) {
 							bytesLastMin += actualBytesSent;
 						}
 					}
 				}
 
 				// if our guess was too low, correct the graph. this should never happen if the throttle is set, but could occur if we guess based on historic speed.
-				if(actualMaxBytesPerDecaSec > guessedMaxBytesPerDecaSec) {
+				if (actualMaxBytesPerDecaSec > guessedMaxBytesPerDecaSec) {
 					double correction = guessedMaxBytesPerDecaSec / actualMaxBytesPerDecaSec;
 
-					for(int i=0; i<360; i++) {
+					for (int i = 0; i < 360; i++) {
 						heights[i] = (int) Math.round(heights[i] * correction);
 					}
 				}
@@ -329,7 +330,7 @@ public class HHControlPane extends JPanel {
 				topSpeedKBps = (int) Math.ceil(Math.max(guessedMaxBytesPerDecaSec, actualMaxBytesPerDecaSec) / 10000);
 			}
 
-			if(heights != null) {
+			if (heights != null) {
 				// draw graphs
 
 				g2.setColor(Color.GREEN);
@@ -339,11 +340,11 @@ public class HHControlPane extends JPanel {
 				int y1 = 0;
 				int y2 = Math.round(blipBottom - heights[0]);
 
-				for(int i=0; i<359; i++) {
+				for (int i = 0; i < 359; i++) {
 					x1 = x2;
-					x2 = (int) Math.round(blipLeftOff + blipwidth * (i+1));
+					x2 = (int) Math.round(blipLeftOff + blipwidth * (i + 1));
 					y1 = y2;
-					y2 = Math.round(blipBottom - heights[i+1]);
+					y2 = Math.round(blipBottom - heights[i + 1]);
 					g2.drawLine(x1, y1, x2, y2);
 				}
 
@@ -356,13 +357,13 @@ public class HHControlPane extends JPanel {
 				y1 = 0;
 				y2 = Math.round(blipBottom - average);
 
-				for(int i=0; i<359; i++) {
-					if(i < 354) {
+				for (int i = 0; i < 359; i++) {
+					if (i < 354) {
 						average = Math.max(0, average + (heights[i + 6] - heights[i]) / 6);
 					}
 
 					x1 = x2;
-					x2 = (int) Math.round(blipLeftOff + blipwidth * (i+1));
+					x2 = (int) Math.round(blipLeftOff + blipwidth * (i + 1));
 					y1 = y2;
 					y2 = Math.round(blipBottom - average);
 					g2.drawLine(x1, y1, x2, y2);
@@ -375,13 +376,13 @@ public class HHControlPane extends JPanel {
 				java.text.DecimalFormat df = new java.text.DecimalFormat("0.00");
 
 				long uptime = Stats.getUptime();
-				g2.drawString("60 min: " + (!Stats.isClientRunning() || uptime < 3600 ? "N/A" : df.format(bytesLast60Min / 3600000.0)) + " KB/s",  10, 205);
-				g2.drawString("15 min: " + (!Stats.isClientRunning() || uptime < 900  ? "N/A" : df.format(bytesLast15Min / 900000.0))  + " KB/s", 135, 205);
-				g2.drawString("1 min: "  + (!Stats.isClientRunning() || uptime < 60   ? "N/A" : df.format(bytesLastMin   / 60000.0))   + " KB/s", 260, 205);
-				g2.drawString("Last: "   + (!Stats.isClientRunning()                  ? "N/A" : df.format(bytesLast10Sec / 10000.0))   + " KB/s", 385, 205);
+				g2.drawString("60 min: " + (!Stats.isClientRunning() || uptime < 3600 ? "N/A" : df.format(bytesLast60Min / 3600000.0)) + " KB/s", 10, 205);
+				g2.drawString("15 min: " + (!Stats.isClientRunning() || uptime < 900 ? "N/A" : df.format(bytesLast15Min / 900000.0)) + " KB/s", 135, 205);
+				g2.drawString("1 min: " + (!Stats.isClientRunning() || uptime < 60 ? "N/A" : df.format(bytesLastMin / 60000.0)) + " KB/s", 260, 205);
+				g2.drawString("Last: " + (!Stats.isClientRunning() ? "N/A" : df.format(bytesLast10Sec / 10000.0)) + " KB/s", 385, 205);
 			}
 
-			if(topSpeedKBps > -1) {
+			if (topSpeedKBps > -1) {
 				// draw speed bars
 
 				g2.setColor(Color.RED);

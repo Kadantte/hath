@@ -41,30 +41,29 @@ public class HVFile {
 		this.yres = yres;
 		this.type = type;
 	}
-	
+
 	public File getLocalFileRef() {
 		return new File(CacheHandler.getCacheDir(), hash.substring(0, 2) + "/" + getFileid());
 	}
-	
+
 	public boolean localFileMatches(File file) {
 		// note: we only check the sha-1 hash and filesize here, to save resources and avoid dealing with the crummy image handlers
 		try {
 			return file.length() == size && hash.startsWith(MiscTools.getSHAString(file));
-		} catch(java.io.IOException e) {
+		} catch (java.io.IOException e) {
 			Out.warning("Failed reading file " + file + " to determine hash.");
 		}
-		
+
 		return false;
 	}
-	
-	
+
 	// accessors
 	public String getMimeType() {
-		if(type.equals("jpg")) {
+		if (type.equals("jpg")) {
 			return Settings.CONTENT_TYPE_JPG;
-		} else if(type.equals("png")) {
+		} else if (type.equals("png")) {
 			return Settings.CONTENT_TYPE_PNG;
-		} else if(type.equals("gif")) {
+		} else if (type.equals("gif")) {
 			return Settings.CONTENT_TYPE_GIF;
 		} else {
 			return Settings.CONTENT_TYPE_OCTET;
@@ -74,19 +73,18 @@ public class HVFile {
 	public String getFileid() {
 		return hash + "-" + size + "-" + xres + "-" + yres + "-" + type;
 	}
-	
+
 	public String getHash() {
 		return hash;
 	}
-	
+
 	public int getSize() {
 		return size;
 	}
-	
+
 	public String getType() {
 		return type;
 	}
-	
 
 	// static stuff
 	public static boolean isValidHVFileid(String fileid) {
@@ -94,28 +92,28 @@ public class HVFile {
 	}
 
 	public static HVFile getHVFileFromFile(File file, boolean verify) {
-		if(file.exists()) {
+		if (file.exists()) {
 			String fileid = file.getName();
 
 			try {
-				if(verify) {
-					if(!fileid.startsWith(MiscTools.getSHAString(file))) {
+				if (verify) {
+					if (!fileid.startsWith(MiscTools.getSHAString(file))) {
 						return null;
 					}
 				}
 
 				return getHVFileFromFileid(fileid);
-			} catch(java.io.IOException e) {
+			} catch (java.io.IOException e) {
 				e.printStackTrace();
 				Out.warning("Warning: Encountered IO error computing the hash value of " + file);
 			}
 		}
-		
+
 		return null;
 	}
-	
+
 	public static HVFile getHVFileFromFileid(String fileid) {
-		if(isValidHVFileid(fileid)) {
+		if (isValidHVFileid(fileid)) {
 			try {
 				String[] fileidParts = fileid.split("-");
 				String hash = fileidParts[0];
@@ -124,17 +122,17 @@ public class HVFile {
 				int yres = Integer.parseInt(fileidParts[3]);
 				String type = fileidParts[4];
 				return new HVFile(hash, size, xres, yres, type);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				Out.warning("Failed to parse fileid \"" + fileid + "\" : " + e);
 			}
 		}
 		else {
 			Out.warning("Invalid fileid \"" + fileid + "\"");
 		}
-		
+
 		return null;
 	}
-	
+
 	public String toString() {
 		return getFileid();
 	}

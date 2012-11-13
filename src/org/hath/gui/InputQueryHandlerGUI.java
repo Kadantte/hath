@@ -22,8 +22,11 @@ along with Hentai@Home GUI.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 package org.hath.gui;
-import org.hath.base.*;
-import javax.swing.*;
+
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+
+import org.hath.base.InputQueryHandler;
 
 public class InputQueryHandlerGUI implements InputQueryHandler {
 	private JFrame frame;
@@ -31,19 +34,19 @@ public class InputQueryHandlerGUI implements InputQueryHandler {
 	public InputQueryHandlerGUI(JFrame frame) {
 		this.frame = frame;
 	}
-	
+
 	public String queryString(String querytext) {
 		String s = null;
-		
+
 		do {
 			s = (String) JOptionPane.showInputDialog(frame, querytext, "Hentai@Home needs some input...", JOptionPane.PLAIN_MESSAGE);
-			
-			if(s == null) {
+
+			if (s == null) {
 				System.out.print("Interrupted");
-				System.exit(0);		
+				System.exit(0);
 			}
-		} while(s.length() == 0);
-		
+		} while (s.length() == 0);
+
 		return s;
 	}
 }

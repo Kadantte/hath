@@ -22,6 +22,7 @@ along with Hentai@Home GUI.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 package org.hath.gui;
+
 import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Image;
@@ -66,17 +67,17 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 
 	public HentaiAtHomeClientGUI(String[] args) {
 		String mainjar = "HentaiAtHome.jar";
-		if(! (new java.io.File(mainjar)).canRead()) {
+		if (!(new java.io.File(mainjar)).canRead()) {
 			Out.error("Required JAR file " + mainjar + " could not be found. Please re-download Hentai@Home.");
 			System.exit(-1);
 		}
 
 		try {
-    		UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-    	} catch(Exception e) {
-   	 		e.printStackTrace();
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception e) {
+			e.printStackTrace();
 			System.exit(-1);
-    	}
+		}
 
 		Image icon16 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/src/org/hath/gui/icon16.png"));
 		Image icon32 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/src/org/hath/gui/icon32.png"));
@@ -155,32 +156,32 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 
 		// create the systray
 
-		if(SystemTray.isSupported()) {
+		if (SystemTray.isSupported()) {
 			trayFirstMinimize = true; // popup the "still running" box the first time the client is minimized to the systray this run
 			setDefaultCloseOperation(DO_NOTHING_ON_CLOSE); // we'll handle this with the WindowListener
 
 			tray = SystemTray.getSystemTray();
 			PopupMenu trayMenu = new PopupMenu();
 
-			//MenuItem test = new MenuItem("test");
-			//test.addActionListener(this);
-			//trayMenu.add(test);
+			// MenuItem test = new MenuItem("test");
+			// test.addActionListener(this);
+			// trayMenu.add(test);
 
 			trayIcon = new TrayIcon(icon16, "Hentai@Home", trayMenu);
 			trayIcon.addMouseListener(this);
 
 			try {
 				tray.add(trayIcon);
-			} catch(AWTException e) {
+			} catch (AWTException e) {
 				e.printStackTrace();
 			}
 		}
 
 		boolean startVisible = true;
 
-		for(String s : args) {
-			if(s.equalsIgnoreCase("--silentstart")) {
-				if(SystemTray.isSupported()) {
+		for (String s : args) {
+			if (s.equalsIgnoreCase("--silentstart")) {
+				if (SystemTray.isSupported()) {
 					startVisible = false;
 				}
 			}
@@ -196,7 +197,8 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 
 		try {
 			Thread.sleep(startVisible ? 2000 : 60000);
-		} catch(Exception e) {}
+		} catch (Exception e) {
+		}
 
 		Settings.setActiveGUI(this);
 		client = new HentaiAtHomeClient(new InputQueryHandlerGUI(this), args);
@@ -204,17 +206,18 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 	}
 
 	public void run() {
-		while(true) {
+		while (true) {
 			try {
 				Thread.sleep(1000);
-			} catch(Exception e) {}
+			} catch (Exception e) {
+			}
 
-			if(!Stats.isClientSuspended() && suspend_resume.isEnabled()) {
+			if (!Stats.isClientSuspended() && suspend_resume.isEnabled()) {
 				setResumeEnabled(false);
 				setSuspendEnabled(true);
 			}
 
-			if(!refresh_settings.isEnabled() && lastSettingRefresh < System.currentTimeMillis() - 60000) {
+			if (!refresh_settings.isEnabled() && lastSettingRefresh < System.currentTimeMillis() - 60000) {
 				refresh_settings.setEnabled(true);
 			}
 
@@ -234,31 +237,31 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 	public void actionPerformed(ActionEvent e) {
 		String cmd = e.getActionCommand();
 
-		if(cmd.equals("Refresh Settings")) {
+		if (cmd.equals("Refresh Settings")) {
 			refresh_settings.setEnabled(false);
 			client.getClientAPI().refreshSettings();
-		} else if(cmd.equals("Shutdown H@H")) {
-			if(client != null) {
+		} else if (cmd.equals("Shutdown H@H")) {
+			if (client != null) {
 				new GUIThreaded(client, GUIThreaded.ACTION_SHUTDOWN);
 			}
 			else {
 				System.exit(0);
 			}
-		} else if(cmd.equals("Resume")) {
+		} else if (cmd.equals("Resume")) {
 			clientResume();
-		} else if(cmd.equals("Suspend for 5 Minutes")) {
+		} else if (cmd.equals("Suspend for 5 Minutes")) {
 			clientSuspend(60 * 5);
-		} else if(cmd.equals("Suspend for 15 Minutes")) {
+		} else if (cmd.equals("Suspend for 15 Minutes")) {
 			clientSuspend(60 * 15);
-		} else if(cmd.equals("Suspend for 30 Minutes")) {
+		} else if (cmd.equals("Suspend for 30 Minutes")) {
 			clientSuspend(60 * 30);
-		} else if(cmd.equals("Suspend for 1 Hour")) {
+		} else if (cmd.equals("Suspend for 1 Hour")) {
 			clientSuspend(60 * 60);
-		} else if(cmd.equals("Suspend for 2 Hours")) {
+		} else if (cmd.equals("Suspend for 2 Hours")) {
 			clientSuspend(60 * 120);
-		} else if(cmd.equals("Suspend for 4 Hours")) {
+		} else if (cmd.equals("Suspend for 4 Hours")) {
 			clientSuspend(60 * 240);
-		} else if(cmd.equals("Suspend for 8 Hours")) {
+		} else if (cmd.equals("Suspend for 8 Hours")) {
 			clientSuspend(60 * 480);
 		} else if (cmd.equals("Show Connection Monitor")) {
 			new HHReqStatsFrame();
@@ -266,38 +269,53 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 	}
 
 	// WindowListener for the JFrame
-	public void windowActivated(WindowEvent e) {}
-	public void windowClosed(WindowEvent e) {}
+	public void windowActivated(WindowEvent e) {
+	}
+
+	public void windowClosed(WindowEvent e) {
+	}
 
 	public void windowClosing(WindowEvent e) {
 		setVisible(false);
 
-		if(trayFirstMinimize) {
+		if (trayFirstMinimize) {
 			trayFirstMinimize = false;
 			trayIcon.displayMessage("Hentai@Home is still running", "Click here when you wish to show the Hentai@Home Client", TrayIcon.MessageType.INFO);
 		}
 	}
 
-	public void windowDeactivated(WindowEvent e) {}
-	public void windowDeiconified(WindowEvent e) {}
-	public void windowIconified(WindowEvent e) {}
-	public void windowOpened(WindowEvent e) {}
+	public void windowDeactivated(WindowEvent e) {
+	}
 
+	public void windowDeiconified(WindowEvent e) {
+	}
+
+	public void windowIconified(WindowEvent e) {
+	}
+
+	public void windowOpened(WindowEvent e) {
+	}
 
 	// MouseListener for the SystemTray
 	public void mouseClicked(MouseEvent e) {
 		setVisible(true);
 	}
 
-	public void mouseEntered(MouseEvent e) {}
-	public void mouseExited(MouseEvent e) {}
-	public void mousePressed(MouseEvent e) {}
-	public void mouseReleased(MouseEvent e) {}
+	public void mouseEntered(MouseEvent e) {
+	}
 
+	public void mouseExited(MouseEvent e) {
+	}
+
+	public void mousePressed(MouseEvent e) {
+	}
+
+	public void mouseReleased(MouseEvent e) {
+	}
 
 	private void clientSuspend(int suspendTimeSeconds) {
-		if(client != null && client.getClientAPI() != null) {
-			if(client.getClientAPI().clientSuspend(suspendTimeSeconds).getResultText().equals("OK")) {
+		if (client != null && client.getClientAPI() != null) {
+			if (client.getClientAPI().clientSuspend(suspendTimeSeconds).getResultText().equals("OK")) {
 				setSuspendEnabled(false);
 				setResumeEnabled(true);
 			}
@@ -311,8 +329,8 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 	}
 
 	private void clientResume() {
-		if(client != null && client.getClientAPI() != null) {
-			if(client.getClientAPI().clientResume().getResultText().equals("OK")) {
+		if (client != null && client.getClientAPI() != null) {
+			if (client.getClientAPI().clientResume().getResultText().equals("OK")) {
 				setSuspendEnabled(true);
 				setResumeEnabled(false);
 			}

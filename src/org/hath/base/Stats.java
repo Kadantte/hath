@@ -25,8 +25,8 @@ package org.hath.base;
 
 // convenience class for the GUI
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Stats {
 
@@ -42,55 +42,55 @@ public class Stats {
 	private static int[] bytesSentHistory;
 	private static int openConnections;
 	private static int lastServerContact;
-	
+
 	private static int[] currentByteSendSpeed;
 	private static int currentByteSendFlip;
-	
+
 	static {
 		bytesSentHistory = new int[361];
 		currentByteSendSpeed = new int[2];
 		currentByteSendFlip = 0;
 		statListeners = new ArrayList<StatListener>();
 		resetStats();
-		//for(int i=0; i<361; i++) {
-		//	bytesSentHistory[i] = (int) (Math.random() * 1000000);
-		//}
+		// for(int i=0; i<361; i++) {
+		// bytesSentHistory[i] = (int) (Math.random() * 1000000);
+		// }
 	}
 
 	public static void addStatListener(StatListener listener) {
-		synchronized(statListeners) {
-			if(!statListeners.contains(listener)) {
+		synchronized (statListeners) {
+			if (!statListeners.contains(listener)) {
 				statListeners.add(listener);
 			}
 		}
 	}
-	
+
 	public static void removeStatListener(StatListener listener) {
-		synchronized(statListeners) {
+		synchronized (statListeners) {
 			statListeners.remove(listener);
-		}		
+		}
 	}
 
 	private static void statChanged(String stat) {
 		HentaiAtHomeClient client = Settings.getActiveClient();
 		boolean announce = false;
-		
-		if(client == null) {
+
+		if (client == null) {
 			announce = true;
 		}
-		else if(!client.isShuttingDown()) {
+		else if (!client.isShuttingDown()) {
 			announce = true;
 		}
 
-		if(announce) {
-			synchronized(statListeners) {
-				for(StatListener listener : statListeners) {
+		if (announce) {
+			synchronized (statListeners) {
+				for (StatListener listener : statListeners) {
 					listener.statChanged(stat);
 				}
 			}
 		}
 	}
-	
+
 	// modify methods
 	public static void setProgramStatus(String newStatus) {
 		programStatus = newStatus;
@@ -109,26 +109,26 @@ public class Stats {
 		cacheCount = 0;
 		cacheSize = 0;
 		resetBytesSentHistory();
-	
+
 		statChanged("reset");
 	}
-	
+
 	// run this from a thread every 10 seconds
 	public static void shiftBytesSentHistory() {
-		for(int i=360; i>0; i--) {
-			bytesSentHistory[i] = bytesSentHistory[i-1];
+		for (int i = 360; i > 0; i--) {
+			bytesSentHistory[i] = bytesSentHistory[i - 1];
 		}
-		
+
 		bytesSentHistory[0] = 0;
 
 		statChanged("bytesSentHistory");
 	}
 
 	public static void resetBytesSentHistory() {
-		java.util.Arrays.fill(bytesSentHistory, 0);	
+		java.util.Arrays.fill(bytesSentHistory, 0);
 		statChanged("bytesSentHistory");
 	}
-	
+
 	public static void programStarted() {
 		clientStartTime = System.currentTimeMillis();
 		clientRunning = true;
@@ -141,18 +141,18 @@ public class Stats {
 		setProgramStatus("Suspended");
 		statChanged("clientSuspended");
 	}
-	
+
 	public static void programResumed() {
 		clientSuspended = false;
 		setProgramStatus("Running");
 		statChanged("clientSuspended");
 	}
-	
+
 	public static void serverContact() {
 		lastServerContact = (int) (System.currentTimeMillis() / 1000);
 		statChanged("lastServerContact");
 	}
-	
+
 	public static void fileSent() {
 		++filesSent;
 		statChanged("fileSent");
@@ -165,129 +165,129 @@ public class Stats {
 
 	private static int checkCurrentTimeSendSpeed() {
 		int currentTime = (int) (System.currentTimeMillis() / 1000);
-		if(currentByteSendFlip < currentTime) {
+		if (currentByteSendFlip < currentTime) {
 			currentByteSendSpeed[currentTime % 2] = 0;
-			
-			if(currentByteSendFlip + 1 < currentTime) {
+
+			if (currentByteSendFlip + 1 < currentTime) {
 				currentByteSendSpeed[(currentTime + 1) % 2] = 0;
 			}
 		}
-		
-		currentByteSendFlip = currentTime;	
+
+		currentByteSendFlip = currentTime;
 		return currentTime;
 	}
-	
+
 	public static void bytesSent(int b) {
-		if(clientRunning) {
+		if (clientRunning) {
 			bytesSent += b;
 			bytesSentHistory[0] += (int) b;
 		}
-			
+
 		currentByteSendSpeed[checkCurrentTimeSendSpeed() % 2] += b;
 		statChanged("bytesSent");
 	}
-	
+
 	public static void bytesRcvd(int b) {
-		if(clientRunning) {
+		if (clientRunning) {
 			bytesRcvd += b;
 			statChanged("bytesRcvd");
 		}
 	}
-	
+
 	public static void setCacheCount(int count) {
 		cacheCount = count;
 		statChanged("cacheCount");
 	}
-	
+
 	public static void setCacheSize(long size) {
 		cacheSize = size;
 		statChanged("cacheSize");
 	}
-	
+
 	public static void setOpenConnections(int conns) {
 		openConnections = conns;
 		statChanged("openConnections");
 	}
-	
+
 	// accessor methods
 	public static boolean isClientRunning() {
 		return clientRunning;
 	}
-	
+
 	public static boolean isClientSuspended() {
 		return clientSuspended;
 	}
-	
+
 	public static String getProgramStatus() {
 		return programStatus;
 	}
-	
+
 	public static int getUptime() {
 		return (int) getUptimeDouble();
 	}
 
 	public static double getUptimeDouble() {
-		if(clientRunning) {
+		if (clientRunning) {
 			return ((System.currentTimeMillis() - clientStartTime) / 1000.0);
 		}
-		
+
 		return 0;
 	}
-	
+
 	public static long getFilesSent() {
 		return filesSent;
 	}
-	
+
 	public static long getFilesRcvd() {
 		return filesRcvd;
 	}
-	
+
 	public static long getBytesSent() {
 		return bytesSent;
 	}
-	
+
 	public static int[] getBytesSentHistory() {
 		return bytesSentHistory;
 	}
-	
+
 	public static long getBytesRcvd() {
 		return bytesRcvd;
 	}
-	
+
 	public static int getBytesSentPerSec() {
 		double uptime = getUptimeDouble();
 		return uptime > 0 ? (int) (bytesSent / uptime) : 0;
 	}
-	
+
 	public static int getBytesRcvdPerSec() {
 		double uptime = getUptimeDouble();
-		return uptime > 0 ? (int) (bytesRcvd / uptime) : 0;	
+		return uptime > 0 ? (int) (bytesRcvd / uptime) : 0;
 	}
-	
+
 	public static int getCurrentBytesPerSec() {
 		return currentByteSendSpeed[(checkCurrentTimeSendSpeed() + 1) % 2];
 	}
-	
+
 	public static int getCacheCount() {
 		return cacheCount;
 	}
-	
+
 	public static long getCacheSize() {
 		return cacheSize;
 	}
-	
+
 	public static long getCacheFree() {
 		return Settings.getDiskLimitBytes() - cacheSize;
 	}
-	
+
 	public static float getCacheFill() {
 		return Settings.getDiskLimitBytes() != 0 ? cacheSize / (float) Settings.getDiskLimitBytes() : 0;
 	}
-	
+
 	public static int getOpenConnections() {
 		return openConnections;
 	}
-	
+
 	public static int getLastServerContact() {
 		return lastServerContact;
 	}

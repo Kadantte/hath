@@ -26,6 +26,7 @@ package org.hath.base;
 public interface HathGUI {
 
 	public void notifyWarning(String title, String text);
+
 	public void notifyError(String reason);
-	
+
 }

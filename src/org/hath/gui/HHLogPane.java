@@ -22,6 +22,7 @@ along with Hentai@Home GUI.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 package org.hath.gui;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -51,9 +52,9 @@ public class HHLogPane extends JPanel implements OutListener {
 		addText("Hentai@Home GUI " + Settings.CLIENT_VERSION + " initializing...");
 		addText("The client will automatically start up momentarily...");
 
-		JScrollPane taHolder = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,	JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		JScrollPane taHolder = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		taHolder.setPreferredSize(new Dimension(1000, 450));
-		taHolder.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Program Output"), BorderFactory.createEmptyBorder(5,5,5,5)), taHolder.getBorder()));
+		taHolder.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Program Output"), BorderFactory.createEmptyBorder(5, 5, 5, 5)), taHolder.getBorder()));
 
 		add(taHolder, BorderLayout.CENTER);
 
@@ -66,15 +67,15 @@ public class HHLogPane extends JPanel implements OutListener {
 
 	public synchronized void addText(String toAdd) {
 		int linecount = textArea.getLineCount();
-		if(linecount > 48) {
+		if (linecount > 48) {
 			try {
 				textArea.replaceRange("", 0, textArea.getLineEndOffset(1));
-			} catch(javax.swing.text.BadLocationException e) {
+			} catch (javax.swing.text.BadLocationException e) {
 				e.printStackTrace();
 			}
 		}
 
-		textArea.append(toAdd +"\n");
+		textArea.append(toAdd + "\n");
 		textArea.setCaretPosition(textArea.getText().length());
 	}
 }

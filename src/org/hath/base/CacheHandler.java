@@ -24,11 +24,16 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 package org.hath.base;
 
 import java.io.File;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.sql.*;
 
 public class CacheHandler {
 
@@ -62,7 +67,7 @@ public class CacheHandler {
 		this.recentlyAccessed = new ArrayList<CachedFile>(100);
 		this.pendingRegister = new ArrayList<HVFile>(50);
 
-		if(Settings.isUseMoreMemory()) {
+		if (Settings.isUseMoreMemory()) {
 			// the memoryWrittenTable can hold 16^5 = 1048576 shorts consisting of 16 bits each.
 			// addressing is done by looking up the first five nibbles (=20 bits) of a hash, then using the sixth nibble to determine which bit in the short to read/set.
 			// while collisions may occur, they should be fairly rare, and should not cause any major issues with files not having their timestamp updated.
@@ -76,13 +81,13 @@ public class CacheHandler {
 			String db = "data/hath.db";
 			File dbfile = new File(db);
 
-			if(dbfile.exists()) {
+			if (dbfile.exists()) {
 				File dbfileBackup = new File(db + ".bak-temp");
-				if(dbfileBackup.exists()) {
+				if (dbfileBackup.exists()) {
 					dbfileBackup.delete();
 				}
 
-				if(FileTools.copy(dbfile, dbfileBackup)) {
+				if (FileTools.copy(dbfile, dbfileBackup)) {
 					Out.info("CacheHandler: Database file " + db + " backed up as " + dbfileBackup);
 				}
 				else {
@@ -92,7 +97,7 @@ public class CacheHandler {
 
 			boolean initialized = initializeDatabase(db);
 
-			if(!initialized) {
+			if (!initialized) {
 				Out.info("");
 				Out.info("************************************************************************************************************************************");
 				Out.info("The database could not be loaded.");
@@ -108,7 +113,7 @@ public class CacheHandler {
 				HentaiAtHomeClient.dieWithError("Failed to load the database.");
 			}
 
-			if(quickStart) {
+			if (quickStart) {
 				Out.info("Last shutdown was clean - using fast startup procedure.");
 			} else {
 				Out.info("Last shutdown was dirty - the cache index must be verified.");
@@ -116,15 +121,15 @@ public class CacheHandler {
 
 			Out.info("CacheHandler: Rotating database backups");
 
-			for(int i=0; i<=3; i++) {
-				(new File(db + ".bak." + (i-1))).delete();
+			for (int i = 0; i <= 3; i++) {
+				(new File(db + ".bak." + (i - 1))).delete();
 			}
 
 			(new File(db + ".bak")).delete();
 			(new File(db + ".bak-temp")).renameTo(new File(db + ".bak"));
 
 			Out.info("CacheHandler: Database initialized");
-		} catch(Exception e) {
+		} catch (Exception e) {
 			Out.error("CacheHandler: Failed to initialize SQLite database engine");
 			HentaiAtHomeClient.dieWithError(e);
 		}
@@ -162,10 +167,10 @@ public class CacheHandler {
 			setStringVar = sqlite.prepareStatement("INSERT OR REPLACE INTO StringVars (k, v) VALUES (?, ?);");
 			getStringVar = sqlite.prepareStatement("SELECT v FROM StringVars WHERE k=?;");
 
-			if(!Settings.isForceDirty()) {
+			if (!Settings.isForceDirty()) {
 				getStringVar.setString(1, CLEAN_SHUTDOWN_KEY);
 				ResultSet rs = getStringVar.executeQuery();
-				if(rs.next()) {
+				if (rs.next()) {
 					quickStart = rs.getString(1).equals(CLEAN_SHUTDOWN_VALUE);
 				}
 				rs.close();
@@ -176,7 +181,7 @@ public class CacheHandler {
 			setStringVar.executeUpdate();
 
 			return true;
-		} catch(Exception e) {
+		} catch (Exception e) {
 			Out.error("CacheHandler: Encountered error reading database.");
 			e.printStackTrace();
 			terminateDatabase();
@@ -186,14 +191,15 @@ public class CacheHandler {
 	}
 
 	public void terminateDatabase() {
-		if(sqlite != null) {
+		if (sqlite != null) {
 			try {
 				setStringVar.setString(1, CLEAN_SHUTDOWN_KEY);
 				setStringVar.setString(2, CLEAN_SHUTDOWN_VALUE);
 				setStringVar.executeUpdate();
 
 				sqlite.close();
-			} catch(Exception e) {}
+			} catch (Exception e) {
+			}
 
 			sqlite = null;
 		}
@@ -209,8 +215,8 @@ public class CacheHandler {
 
 		File[] tmpfiles = tmpdir.listFiles();
 
-		for(File tmpfile: tmpfiles) {
-			if(tmpfile.isFile()) {
+		for (File tmpfile : tmpfiles) {
+			if (tmpfile.isFile()) {
 				Out.debug("Deleted orphaned temporary file " + tmpfile);
 				tmpfile.delete();
 			}
@@ -219,15 +225,15 @@ public class CacheHandler {
 			}
 		}
 
-		if(quickStart && !Settings.isVerifyCache()) {
+		if (quickStart && !Settings.isVerifyCache()) {
 			try {
 				ResultSet rs = cacheIndexCountStats.executeQuery();
-				if(rs.next()) {
+				if (rs.next()) {
 					cacheCount = rs.getInt(1);
 					cacheSize = rs.getLong(2);
 				}
 				rs.close();
-			} catch(Exception e) {
+			} catch (Exception e) {
 				Out.error("CacheHandler: Failed to perform database operation");
 				HentaiAtHomeClient.dieWithError(e);
 			}
@@ -235,23 +241,23 @@ public class CacheHandler {
 			updateStats();
 			flushRecentlyAccessed();
 		} else {
-			if(Settings.isVerifyCache()) {
+			if (Settings.isVerifyCache()) {
 				Out.info("CacheHandler: A full cache verification has been requested. This can take quite some time.");
 			}
 
 			populateInternalCacheTable();
 		}
 
-		if(!checkAndFreeDiskSpace(cachedir, true)) {
+		if (!checkAndFreeDiskSpace(cachedir, true)) {
 			Out.warning("ClientHandler: There is not enough space left on the disk to add more files to the cache.");
 		}
 	}
 
 	public HVFile getHVFile(String fileid, boolean hit) {
-		if(HVFile.isValidHVFileid(fileid)) {
+		if (HVFile.isValidHVFileid(fileid)) {
 			CachedFile cf = new CachedFile(fileid);
 
-			if(hit) {
+			if (hit) {
 				cf.hit();
 			}
 
@@ -264,17 +270,17 @@ public class CacheHandler {
 	// note: this will just move the file into its correct location. addFileToActiveCache MUST be called afterwards to import the file into the necessary datastructures.
 	// otherwise, the file will not be available until the client is restarted, and even then not if --quickstart is used.
 	public boolean moveFileToCacheDir(File file, HVFile hvFile) {
-		if(checkAndFreeDiskSpace(file)) {
+		if (checkAndFreeDiskSpace(file)) {
 			File toFile = hvFile.getLocalFileRef();
 
 			try {
 				FileTools.checkAndCreateDir(toFile.getParentFile());
 
-				if(file.renameTo(toFile)) {
+				if (file.renameTo(toFile)) {
 					Out.debug("CacheHandler: Imported file " + file + " to " + hvFile.getFileid());
 					return true;
 				}
-				else if(FileTools.copy(file, toFile)) {
+				else if (FileTools.copy(file, toFile)) {
 					// rename can fail in some cases, like when source and target are on different file systems.
 					// when this happens, we just use our own copy function instead, and delete the old file afterwards.
 					file.delete();
@@ -284,7 +290,7 @@ public class CacheHandler {
 				else {
 					Out.warning("CacheHandler: Failed to move file " + file);
 				}
-			} catch(java.io.IOException e) {
+			} catch (java.io.IOException e) {
 				e.printStackTrace();
 				Out.warning("CacheHandler: Encountered exception " + e + " when moving file " + file);
 			}
@@ -295,13 +301,13 @@ public class CacheHandler {
 
 	public void addFileToActiveCache(HVFile hvFile) {
 		try {
-			synchronized(sqlite) {
+			synchronized (sqlite) {
 				String fileid = hvFile.getFileid();
 
 				updateCachedFileActive.setString(1, fileid);
 				int affected = updateCachedFileActive.executeUpdate();
 
-				if(affected == 0) {
+				if (affected == 0) {
 					insertCachedFile.setString(1, fileid);
 					insertCachedFile.setLong(2, (long) Math.floor(System.currentTimeMillis() / 1000));
 					insertCachedFile.setInt(3, hvFile.getSize());
@@ -309,7 +315,7 @@ public class CacheHandler {
 					insertCachedFile.executeUpdate();
 				}
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
 			HentaiAtHomeClient.dieWithError(e);
 		}
@@ -324,12 +330,12 @@ public class CacheHandler {
 	// So we'll instead send regular updates to the server about downloaded files, whenever a file is added this way.
 	public void addPendingRegisterFile(HVFile hvFile) {
 		// We only register files <= 10 MB. Larger files are handled outside the H@H network.
-		if(hvFile.getSize() <= 10485760) {
-			synchronized(pendingRegister) {
+		if (hvFile.getSize() <= 10485760) {
+			synchronized (pendingRegister) {
 				Out.debug("Added " + hvFile + " to pendingRegister");
 				pendingRegister.add(hvFile);
 
-				if(pendingRegister.size() >= 50) {
+				if (pendingRegister.size() >= 50) {
 					// this call also empties the list
 					client.getServerHandler().notifyRegisterFiles(pendingRegister);
 				}
@@ -341,7 +347,7 @@ public class CacheHandler {
 	}
 
 	public void deleteFileFromCache(HVFile toRemove) {
-		synchronized(sqlite) {
+		synchronized (sqlite) {
 			deleteFileFromCacheNosync(toRemove);
 		}
 	}
@@ -355,7 +361,7 @@ public class CacheHandler {
 			toRemove.getLocalFileRef().delete();
 			Out.info("CacheHandler: Deleted cached file " + toRemove.getFileid());
 			updateStats();
-		} catch(Exception e) {
+		} catch (Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
 			HentaiAtHomeClient.dieWithError(e);
 		}
@@ -384,15 +390,15 @@ public class CacheHandler {
 				int loadedFiles = 0;
 				sqlite.setAutoCommit(false);
 
-				for(File scdir : scdirs) {
-					if(scdir.isDirectory()) {
+				for (File scdir : scdirs) {
+					if (scdir.isDirectory()) {
 						File[] cfiles = scdir.listFiles();
 						java.util.Arrays.sort(cfiles);
 
-						for(File cfile : cfiles) {
+						for (File cfile : cfiles) {
 							boolean newFile = false;
 
-							synchronized(sqlite) {
+							synchronized (sqlite) {
 								queryCachedFileLasthit.setString(1, cfile.getName());
 								ResultSet rs = queryCachedFileLasthit.executeQuery();
 								newFile = !rs.next();
@@ -401,10 +407,10 @@ public class CacheHandler {
 
 							HVFile hvFile = HVFile.getHVFileFromFile(cfile, Settings.isVerifyCache() || newFile);
 
-							if(hvFile != null) {
+							if (hvFile != null) {
 								addFileToActiveCache(hvFile);
 
-								if(newFile) {
+								if (newFile) {
 									++newFiles;
 									Out.info("CacheHandler: Verified and loaded file " + cfile);
 								}
@@ -412,7 +418,7 @@ public class CacheHandler {
 									++knownFiles;
 								}
 
-								if(++loadedFiles % 1000 == 0) {
+								if (++loadedFiles % 1000 == 0) {
 									Out.info("CacheHandler: Loaded " + loadedFiles + " files so far...");
 								}
 							}
@@ -432,11 +438,11 @@ public class CacheHandler {
 				sqlite.commit();
 				sqlite.setAutoCommit(true);
 
-				synchronized(sqlite) {
+				synchronized (sqlite) {
 					int purged = deleteCachedFileInactive.executeUpdate();
 					Out.info("CacheHandler: Purged " + purged + " nonexisting files from database.");
 				}
-			} catch(Exception e) {
+			} catch (Exception e) {
 				Out.error("CacheHandler: Failed to perform database operation");
 				HentaiAtHomeClient.dieWithError(e);
 			}
@@ -446,7 +452,7 @@ public class CacheHandler {
 			Out.info("CacheHandler: Finished initializing the cache (" + cacheCount + " files, " + cacheSize + " bytes)");
 
 			updateStats();
-		} catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			HentaiAtHomeClient.dieWithError("Failed to initialize the cache.");
 		}
@@ -461,7 +467,7 @@ public class CacheHandler {
 	}
 
 	private synchronized boolean checkAndFreeDiskSpace(File file, boolean noServerDeleteNotify) {
-		if(file == null) {
+		if (file == null) {
 			HentaiAtHomeClient.dieWithError("CacheHandler: checkAndFreeDiskSpace needs a file handle to calculate free space");
 		}
 
@@ -474,29 +480,29 @@ public class CacheHandler {
 
 		long bytesToFree = 0;
 
-		if(cacheSize > cacheLimit) {
+		if (cacheSize > cacheLimit) {
 			bytesToFree = cacheSize - cacheLimit;
 		}
-		else if(cacheSize + bytesNeeded - cacheLimit > 0) {
+		else if (cacheSize + bytesNeeded - cacheLimit > 0) {
 			bytesToFree = bytesNeeded * 10;
 		}
 
 		int filesToFree = bytesToFree > 0 ? 20 : 0;
 
-		if(bytesToFree > 0 || filesToFree > 0) {
+		if (bytesToFree > 0 || filesToFree > 0) {
 			Out.info("CacheHandler: Freeing at least " + bytesToFree + " bytes / " + filesToFree + " files...");
 			List<HVFile> deletedFiles = Collections.checkedList(new ArrayList<HVFile>(), HVFile.class);
 
 			try {
-				synchronized(sqlite) {
+				synchronized (sqlite) {
 					queryCachedFileSortOnLasthit.setInt(1, 0);
 					queryCachedFileSortOnLasthit.setInt(2, 1);
 
-					while((filesToFree > 0 || bytesToFree > 0) && cacheCount > 0) {
+					while ((filesToFree > 0 || bytesToFree > 0) && cacheCount > 0) {
 						ResultSet rs = queryCachedFileSortOnLasthit.executeQuery();
 						HVFile toRemove = null;
 
-						if(rs.next()) {
+						if (rs.next()) {
 							toRemove = HVFile.getHVFileFromFileid(rs.getString(1));
 						} else {
 							HentaiAtHomeClient.dieWithError("CacheHandler: Could not find more files to delete. Corrupt database?");
@@ -504,7 +510,7 @@ public class CacheHandler {
 
 						rs.close();
 
-						if(toRemove != null) {
+						if (toRemove != null) {
 							bytesToFree -= toRemove.getSize();
 							filesToFree -= 1;
 							deletedFiles.add(toRemove);
@@ -512,25 +518,25 @@ public class CacheHandler {
 						}
 					}
 				}
-			} catch(Exception e) {
+			} catch (Exception e) {
 				Out.error("CacheHandler: Failed to perform database operation");
 				HentaiAtHomeClient.dieWithError(e);
 			}
 
-			if(!noServerDeleteNotify) {
+			if (!noServerDeleteNotify) {
 				client.getServerHandler().notifyUncachedFiles(deletedFiles);
 			}
 		}
 
-		if(Settings.isSkipFreeSpaceCheck()) {
+		if (Settings.isSkipFreeSpaceCheck()) {
 			Out.debug("CacheHandler: Disk free space check is disabled.");
 			return true;
 		}
 		else {
 			long diskFreeSpace = file.getFreeSpace();
 
-			if(diskFreeSpace < Math.max(Settings.getDiskMinRemainingBytes(), 104857600)) {
-				// if the disk fills up, we  stop adding files instead of starting to remove files from the cache, to avoid being unintentionally squeezed out by other programs
+			if (diskFreeSpace < Math.max(Settings.getDiskMinRemainingBytes(), 104857600)) {
+				// if the disk fills up, we stop adding files instead of starting to remove files from the cache, to avoid being unintentionally squeezed out by other programs
 				Out.warning("CacheHandler: Cannot meet space constraints: Disk free space limit reached (" + diskFreeSpace + " bytes free on device)");
 				return false;
 			}
@@ -548,23 +554,23 @@ public class CacheHandler {
 		Out.info("Checking for old files to prune...");
 
 		try {
-			synchronized(sqlite) {
+			synchronized (sqlite) {
 				queryCachedFileSortOnLasthit.setInt(1, 0);
 				queryCachedFileSortOnLasthit.setInt(2, 1);
 
-				while(pruneCount < 20) {
+				while (pruneCount < 20) {
 					ResultSet rs = queryCachedFileSortOnLasthit.executeQuery();
 					HVFile toRemove = null;
 
-					if(rs.next()) {
-						if(rs.getInt(2) < Math.floor(System.currentTimeMillis() / 1000) - 2592000) {
+					if (rs.next()) {
+						if (rs.getInt(2) < Math.floor(System.currentTimeMillis() / 1000) - 2592000) {
 							toRemove = HVFile.getHVFileFromFileid(rs.getString(1));
 						}
 					}
 
 					rs.close();
 
-					if(toRemove == null) {
+					if (toRemove == null) {
 						break;
 					} else {
 						deletedFiles.add(toRemove);
@@ -573,7 +579,7 @@ public class CacheHandler {
 					}
 				}
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
 			HentaiAtHomeClient.dieWithError(e);
 		}
@@ -587,7 +593,7 @@ public class CacheHandler {
 		Out.info("CacheHandler: Retrieving list of blacklisted files...");
 		String[] blacklisted = client.getServerHandler().getBlacklist(deltatime);
 
-		if(blacklisted == null) {
+		if (blacklisted == null) {
 			Out.warning("CacheHandler: Failed to retrieve file blacklist, will try again later.");
 			return;
 		}
@@ -598,32 +604,32 @@ public class CacheHandler {
 		List<HVFile> deletedFiles = Collections.checkedList(new ArrayList<HVFile>(), HVFile.class);
 
 		try {
-			synchronized(sqlite) {
-				for(String fileid : blacklisted) {
+			synchronized (sqlite) {
+				for (String fileid : blacklisted) {
 					queryCachedFileLasthit.setString(1, fileid);
 					ResultSet rs = queryCachedFileLasthit.executeQuery();
 					HVFile toRemove = null;
 
-					if(rs.next()) {
+					if (rs.next()) {
 						toRemove = HVFile.getHVFileFromFileid(fileid);
 					}
 
 					rs.close();
 
-					if(toRemove != null) {
-						//Out.info("CacheHandler: Removing blacklisted file " + fileid);
+					if (toRemove != null) {
+						// Out.info("CacheHandler: Removing blacklisted file " + fileid);
 						++counter;
 						deletedFiles.add(toRemove);
 						deleteFileFromCacheNosync(toRemove);
 					}
 				}
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
 			HentaiAtHomeClient.dieWithError(e);
 		}
 
-		if(!noServerDeleteNotify) {
+		if (!noServerDeleteNotify) {
 			client.getServerHandler().notifyUncachedFiles(deletedFiles);
 		}
 
@@ -643,18 +649,18 @@ public class CacheHandler {
 		int size = 0;
 
 		try {
-			synchronized(sqlite) {
+			synchronized (sqlite) {
 				queryCachedFileStrlen.setInt(1, maxsize <= 0 ? 10485760 : maxsize);
 				queryCachedFileStrlen.setInt(2, maxcount);
 				ResultSet rs = queryCachedFileStrlen.executeQuery();
 
-				while(rs.next()) {
+				while (rs.next()) {
 					size += 1 + rs.getInt(1);
 				}
 
 				rs.close();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
 			HentaiAtHomeClient.dieWithError(e);
 		}
@@ -666,18 +672,18 @@ public class CacheHandler {
 		LinkedList<CacheListFile> fileList = new LinkedList<CacheListFile>();
 
 		try {
-			synchronized(sqlite) {
+			synchronized (sqlite) {
 				queryCachedFileSortOnLasthitDesc.setInt(1, off);
 				queryCachedFileSortOnLasthitDesc.setInt(2, len);
 				ResultSet rs = queryCachedFileSortOnLasthitDesc.executeQuery();
 
-				while(rs.next()) {
+				while (rs.next()) {
 					fileList.add(new CacheListFile(rs.getString(1), rs.getLong(3)));
 				}
 
 				rs.close();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
 			HentaiAtHomeClient.dieWithError(e);
 		}
@@ -700,7 +706,7 @@ public class CacheHandler {
 	private synchronized void flushRecentlyAccessed(boolean disableAutocommit) {
 		ArrayList<CachedFile> flushCheck, flush = null;
 
-		if(memoryWrittenTable != null) {
+		if (memoryWrittenTable != null) {
 			// this function is called every 10 seconds. clearing 121 of the shorts for each call means that each element will live up to a day (since 1048576 / 8640 is roughly 121).
 			// note that this only happens if the useMoreMemory flag is set.
 
@@ -708,32 +714,32 @@ public class CacheHandler {
 
 			Out.debug("CacheHandler: Clearing memoryWrittenTable from " + memoryClearPointer + " to " + clearUntil);
 
-			while(memoryClearPointer < clearUntil) {
+			while (memoryClearPointer < clearUntil) {
 				memoryWrittenTable[memoryClearPointer++] = 0;
 			}
 
-			if(clearUntil >= MEMORY_TABLE_ELEMENTS) {
+			if (clearUntil >= MEMORY_TABLE_ELEMENTS) {
 				memoryClearPointer = 0;
 			}
 		}
 
-		synchronized(recentlyAccessed) {
+		synchronized (recentlyAccessed) {
 			recentlyAccessedFlush = System.currentTimeMillis();
 			flushCheck = new ArrayList<CachedFile>(recentlyAccessed.size());
 			flushCheck.addAll(recentlyAccessed);
 			recentlyAccessed.clear();
 		}
 
-		if(flushCheck.size() > 0) {
+		if (flushCheck.size() > 0) {
 			try {
-				synchronized(sqlite) {
+				synchronized (sqlite) {
 					flush = new ArrayList<CachedFile>(flushCheck.size());
 
-					for(CachedFile cf : flushCheck) {
+					for (CachedFile cf : flushCheck) {
 						String fileid = cf.getFileid();
 						boolean doFlush = true;
 
-						if(memoryWrittenTable != null) {
+						if (memoryWrittenTable != null) {
 							// if the memory table is active, we use this as a first step in order to determine if the timestamp should be updated or not.
 							// we first need to compute the array index and bitmask for this particular fileid.
 							// then, if the bit is set, we do not update. if not, we update but set the bit.
@@ -742,38 +748,38 @@ public class CacheHandler {
 
 							try {
 								int arrayIndex = 0;
-								for(int i=0; i<5; i++) {
-									arrayIndex += Integer.parseInt(fileid.substring(i, i+1), 16) << ((4 - i) * 4);
+								for (int i = 0; i < 5; i++) {
+									arrayIndex += Integer.parseInt(fileid.substring(i, i + 1), 16) << ((4 - i) * 4);
 								}
 
 								short bitMask = (short) (1 << Short.parseShort(fileid.substring(5, 6), 16));
 
-								if( (memoryWrittenTable[arrayIndex] & bitMask) != 0) {
+								if ((memoryWrittenTable[arrayIndex] & bitMask) != 0) {
 									Out.debug("Written bit for " + fileid + " = " + arrayIndex + ":" + fileid.charAt(5) + " was set");
 								} else {
 									Out.debug("Written bit for " + fileid + " = " + arrayIndex + ":" + fileid.charAt(5) + " was not set - flushing");
 									memoryWrittenTable[arrayIndex] |= bitMask;
 									doFlush = true;
 								}
-							} catch(Exception e) {
+							} catch (Exception e) {
 								Out.warning("Encountered invalid fileid " + fileid + " while checking memoryWrittenTable.");
 							}
 						}
 
-						if(doFlush) {
+						if (doFlush) {
 							// we don't need higher resolution than a day for the LRU mechanism, so we'll save expensive writes by not updating timestamps for files that have been flagged the previous 24 hours.
 							// (reads typically don't involve an actual disk access as the database file is cached to RAM - writes always do unless it can be combined with another write)
 
 							queryCachedFileLasthit.setString(1, fileid);
 							ResultSet rs = queryCachedFileLasthit.executeQuery();
 
-							if(rs.next()) {
-								if(rs.getLong(1) > (long) Math.floor(System.currentTimeMillis() / 1000) - 86400) {
+							if (rs.next()) {
+								if (rs.getLong(1) > (long) Math.floor(System.currentTimeMillis() / 1000) - 86400) {
 									doFlush = false;
 								}
 							}
 
-							if(doFlush) {
+							if (doFlush) {
 								flush.add(cf);
 							}
 
@@ -781,13 +787,13 @@ public class CacheHandler {
 						}
 					}
 
-					if(flush.size() > 0) {
-						if(disableAutocommit) {
+					if (flush.size() > 0) {
+						if (disableAutocommit) {
 							sqlite.setAutoCommit(false);
 						}
 
-						for(CachedFile cf : flush) {
-							if(cf.needsFlush()) {
+						for (CachedFile cf : flush) {
+							if (cf.needsFlush()) {
 								String fileid = cf.getFileid();
 								long lasthit = (long) Math.floor(System.currentTimeMillis() / 1000);
 
@@ -801,19 +807,17 @@ public class CacheHandler {
 							}
 						}
 
-						if(disableAutocommit) {
+						if (disableAutocommit) {
 							sqlite.setAutoCommit(true);
 						}
 					}
 				}
-			} catch(Exception e) {
+			} catch (Exception e) {
 				Out.error("CacheHandler: Failed to perform database operation");
 				HentaiAtHomeClient.dieWithError(e);
 			}
 		}
 	}
-
-
 
 	public class CacheListFile {
 		protected String fileid;
@@ -832,7 +836,6 @@ public class CacheHandler {
 			return filesize;
 		}
 	}
-
 
 	private class CachedFile {
 		private String fileid;
@@ -860,7 +863,7 @@ public class CacheHandler {
 		}
 
 		public void hit() {
-			synchronized(recentlyAccessed) {
+			synchronized (recentlyAccessed) {
 				needFlush = true;
 				recentlyAccessed.add(this);
 			}
