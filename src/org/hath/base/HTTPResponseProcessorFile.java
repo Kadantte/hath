@@ -33,7 +33,8 @@ public class HTTPResponseProcessorFile extends HTTPResponseProcessor {
 
 	private HVFile requestedHVFile;
 	private BufferedInputStream bis;
-	private int off;
+	@SuppressWarnings("unused")
+	private int off; // XXX unused
 
 	public HTTPResponseProcessorFile(HVFile requestedHVFile) {
 		this.requestedHVFile = requestedHVFile;

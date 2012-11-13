@@ -250,7 +250,8 @@ public class Out {
 		private PrintStream ps;
 		private String name;
 		private int severity;
-		private Out out;
+		@SuppressWarnings("unused")
+		private Out out; // XXX unused
 
 		public OutPrintStream(PrintStream ps, String name, int severity) {
 			super((OutputStream)ps);
@@ -263,6 +264,8 @@ public class Out {
 			println(x, name, severity);
 		}
 
+		// XXX unused
+		@SuppressWarnings("unused")
 		public void println(String x, String name) {
 			println(x, name, severity);
 		}

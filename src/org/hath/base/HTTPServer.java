@@ -236,7 +236,8 @@ public class HTTPServer implements Runnable {
 	}
 
 	private class FloodControlEntry {
-		private InetAddress addr;
+		@SuppressWarnings("unused")
+		private InetAddress addr; // XXX unused
 		private int connectCount;
 		private long lastConnect;
 		private long blocktime;

@@ -44,14 +44,16 @@ import java.io.File;
 
 public class HentaiAtHomeClient implements Runnable {
 	private InputQueryHandler iqh;
-	private Out out;
+	@SuppressWarnings("unused")
+	private Out out; // XXX unused
 	private ShutdownHook shutdownHook;
 	private boolean shutdown, reportShutdown, fastShutdown;
 	private HTTPServer httpServer;
 	private ClientAPI clientAPI;
 	private CacheHandler cacheHandler;
 	private ServerHandler serverHandler;
-	private GalleryDownloadManager galleryDownloadManager;
+	@SuppressWarnings("unused")
+	private GalleryDownloadManager galleryDownloadManager; // XXX unused
 	private Thread myThread;
 	private int threadSkipCounter;
 	private long suspendedUntil;
@@ -280,6 +282,8 @@ public class HentaiAtHomeClient implements Runnable {
 		shutdown(false, null);
 	}
 
+	// XXX unused
+	@SuppressWarnings("unused")
 	private void shutdown(String error) {
 		shutdown(false, error);
 	}

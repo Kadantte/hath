@@ -107,10 +107,14 @@ public class URLConnectionTools {
 		}
 	}
 
+	// XXX unused
+	@SuppressWarnings("unused")
 	private static byte[] downloadFile(URL source) {
 		return downloadFile(source, TIMEOUT, MAX_DLTIME);
 	}
 
+	// XXX unused
+	@SuppressWarnings("unused")
 	private static byte[] downloadFile(URL source, int timeout) {
 		return downloadFile(source, timeout, MAX_DLTIME);
 	}

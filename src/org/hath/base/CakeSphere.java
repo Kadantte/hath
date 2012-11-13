@@ -28,8 +28,9 @@ import java.lang.Thread;
 public class CakeSphere implements Runnable {
 	private Thread myThread;
 	private ServerHandler handler;
-	private HentaiAtHomeClient client;
-	
+	@SuppressWarnings("unused")
+	private HentaiAtHomeClient client; // XXX unused
+
 	public CakeSphere(ServerHandler handler, HentaiAtHomeClient client) {
 		myThread = new Thread(this);
 		this.handler = handler;
