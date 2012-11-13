@@ -98,6 +98,10 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 		refresh_settings.setEnabled(false);
 		program.add(refresh_settings);
 		program.add(new JSeparator());
+		connection_monitor = new JMenuItem("Show Connection Monitor");
+		connection_monitor.addActionListener(this);
+		program.add(connection_monitor);
+		program.add(new JSeparator());
 		JMenuItem program_exit = new JMenuItem("Shutdown H@H");
 		program_exit.addActionListener(this);
 		program.add(program_exit);
@@ -254,7 +258,9 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 			clientSuspend(60 * 240);
 		} else if(cmd.equals("Suspend for 8 Hours")) {
 			clientSuspend(60 * 480);
-		} 
+		} else if (cmd.equals("Show Connection Monitor")) {
+			new HHReqStatsFrame();
+		}
 	}
 
 	// WindowListener for the JFrame

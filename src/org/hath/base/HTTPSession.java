@@ -206,6 +206,8 @@ public class HTTPSession implements Runnable {
 						int packetSize = bwm.getActualPacketSize();
 						int writtenBytes = 0;
 
+						RequestStats.newRequest(connId, mySocket.getInetAddress().getHostAddress(), contentLength);
+
 						while(writtenBytes < contentLength) {
 							// write a packet of data and flush.
 							lastPacketSend = System.currentTimeMillis();
@@ -218,7 +220,8 @@ public class HTTPSession implements Runnable {
 							pendingHeaderLength = 0;
 
 							Stats.bytesSent(writeLen);
-							
+							RequestStats.updateRequestStatus(connId, writtenBytes);
+
 							if(!disableBWM) {
 								bwm.synchronizedWait(myThread);
 							}
@@ -237,7 +240,10 @@ public class HTTPSession implements Runnable {
 			if(hpc != null) {
 				hpc.cleanup();
 			}
-			
+
+			// Report finished.
+			RequestStats.finishedRequest(connId);
+
 			try { br.close(); isr.close(); bs.close(); dos.close(); } catch(Exception e) {}
 			try { mySocket.close(); } catch(Exception e) {}
 		}
