@@ -23,7 +23,9 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class HTTPResponse {
@@ -56,8 +58,7 @@ public class HTTPResponse {
 				return new HTTPResponseProcessorText("I feel FANTASTIC and I'm still alive");
 			} else if (command.equalsIgnoreCase("cache_list")) {
 				String max_filesize = addTable.get("max_filesize");
-				String max_filecount = addTable.get("max_filecount");
-				return new HTTPResponseProcessorCachelist(client.getCacheHandler(), max_filesize != null ? Integer.parseInt(max_filesize) : 0, max_filecount != null ? Integer.parseInt(max_filecount) : 0);
+				return new HTTPResponseProcessorCachelist(client.getCacheHandler(), max_filesize != null ? Integer.parseInt(max_filesize) : 0);
 			} else if (command.equalsIgnoreCase("cache_files")) {
 				return new HTTPResponseProcessorText(client.getServerHandler().downloadFilesFromServer(addTable));
 			} else if (command.equalsIgnoreCase("proxy_test")) {
@@ -66,6 +67,14 @@ public class HTTPResponse {
 				String fileid = addTable.get("fileid");
 				String keystamp = addTable.get("keystamp");
 				return new HTTPResponseProcessorText(client.getServerHandler().doProxyTest(ipaddr, port, fileid, keystamp));
+			} else if (command.equalsIgnoreCase("threaded_proxy_test")) {
+				String ipaddr = addTable.get("ipaddr");
+				int port = Integer.parseInt(addTable.get("port"));
+				int testsize = Integer.parseInt(addTable.get("testsize"));
+				int testcount = Integer.parseInt(addTable.get("testcount"));
+				int testtime = Integer.parseInt(addTable.get("testtime"));
+				String testkey = addTable.get("testkey");
+				return new HTTPResponseProcessorText(client.getServerHandler().doThreadedProxyTest(ipaddr, port, testsize, testcount, testtime, testkey));
 			} else if (command.equalsIgnoreCase("speed_test")) {
 				String testsize = addTable.get("testsize");
 				return new HTTPResponseProcessorSpeedtest(testsize != null ? Integer.parseInt(testsize) : 1000000);
@@ -98,10 +107,11 @@ public class HTTPResponse {
 			validRequest = true;
 			requestHeadOnly = requestParts[0].equalsIgnoreCase("HEAD");
 
-			// The request URI may be an absolute path or an absolute URI for GET/HEAD requests (see section 5.1.2 of RFC2616)
+			// The request URI may be an absolute path or an absolute URI for GET/HEAD requests (see section 5.1.2 of
+			// RFC2616)
 			requestParts[1] = absoluteUriPattern.matcher(requestParts[1]).replaceFirst("/");
 
-			String[] urlparts = requestParts[1].split("/");
+			String[] urlparts = requestParts[1].replace("%3d", "=").split("/");
 
 			if ((urlparts.length < 2) || !urlparts[0].equals("")) {
 				Out.warning(session + " The requested URL is invalid or not supported.");
@@ -112,8 +122,10 @@ public class HTTPResponse {
 						return;
 					}
 
-					// new url type for H@H.. we don't really do anything new, but having the filename at the end will make browsers using this as filename per default.
-					// we also put in an extension that allows us to add additional arguments to the request url without messing with old clients.
+					// new url type for H@H.. we don't really do anything new, but having the filename at the end will
+					// make browsers using this as filename per default.
+					// we also put in an extension that allows us to add additional arguments to the request url without
+					// messing with old clients.
 
 					String hvfile = urlparts[2];
 					Hashtable<String, String> additional = MiscTools.parseAdditional(urlparts[3]);
@@ -139,61 +151,40 @@ public class HTTPResponse {
 
 					if (keystampRejected) {
 						responseStatusCode = 403;
-						return;
 					}
 					else if (requestedHVFile == null) {
 						Out.warning(session + " The requested file was invalid or not found in cache.");
 						responseStatusCode = 404;
-						return;
 					}
 					else {
-						hpc = new HTTPResponseProcessorFile(requestedHVFile);
-						return;
-					}
-				} else if (urlparts[1].equals("i")) {
-					// remove this when all clients are upgraded to 1.0.4 r51
+						String fileid = requestedHVFile.getFileid();
 
-					// this kind of request can be on two forms: /x/ab/cd/keystamp/abcd.*?-size-xres-yres-filetype.filetype .. the /ab/cd and additional extension is for dumber clients that do not invoke any custom programming to serve a file, so we'll strip that out in the process.
-					// the client and certain other systems uses /i/abcd.*?-size-xres-yres-filetype to request files, so the client must dont-care whether the superfluous parts are present
-					// seeing as this code will only serve files with a valid fileid, this is fairly simple. we just use everything after the last "/" (slash), and cut off the filename request after the first "." (dot), since that's never a valid part of a fileid.
-
-					String[] fileparts = urlparts[urlparts.length - 1].split("\\."); // regex, so just "." would be any-char
-					HVFile requestedHVFile = session.getHTTPServer().getHentaiAtHomeClient().getCacheHandler().getHVFile(fileparts[0], !localNetworkAccess);
-
-					boolean keystampRejected = true;
-
-					String keystamp = urlparts[urlparts.length > 2 ? urlparts.length - 2 : 0];
-					String[] keystampParts = keystamp.split("-");
-
-					// after 0.4.2 was mandatory we could start doing this for all types of requests
-					if (keystampParts.length == 2) {
-						try {
-							long keystampTime = Integer.parseInt(keystampParts[0]);
-
-							if (Math.abs(Settings.getServerTime() - keystampTime) < 900) {
-								String expectedKey = MiscTools.getSHAString(keystampTime + "-" + fileparts[0] + "-" + Settings.getClientKey() + "-hotlinkthis").substring(0, 10);
-								if (keystampParts[1].equalsIgnoreCase(expectedKey)) {
-									keystampRejected = false;
-								}
-							}
-						} catch (Exception e) {
+						if (requestedHVFile.getLocalFileRef().exists()) {
+							hpc = new HTTPResponseProcessorFile(requestedHVFile);
 						}
+						else if (Settings.isStaticRange(fileid)) {
+							// non-existent file in a static range. do an on-demand request of the file from the image
+							// servers
+							List<String> requestTokens = new ArrayList<String>();
+							requestTokens.add(fileid);
+
+							Hashtable<String, String> tokens = session.getHTTPServer().getHentaiAtHomeClient().getServerHandler().getFileTokens(requestTokens);
+
+							if (tokens.containsKey(fileid)) {
+								hpc = new HTTPResponseProcessorProxy(session, fileid, tokens.get(fileid), 1, 1, "ondemand");
+							}
+							else {
+								responseStatusCode = 404;
+							}
+						}
+						else {
+							// file does not exist, and is not in one of the client's static ranges
+							responseStatusCode = 404;
+						}
+
 					}
 
-					if (keystampRejected) {
-						// Out.warning(session + " Keystamp was invalid or not present.");
-						responseStatusCode = 403;
-						return;
-					}
-					else if (requestedHVFile == null) {
-						Out.warning(session + " The requested file was invalid or not found in cache.");
-						responseStatusCode = 404;
-						return;
-					}
-					else {
-						hpc = new HTTPResponseProcessorFile(requestedHVFile);
-						return;
-					}
+					return;
 				}
 				else if (urlparts[1].equals("servercmd")) {
 					// form: /servercmd/$command/$additional/$time/$key
@@ -233,7 +224,8 @@ public class HTTPResponse {
 					// new proxy request type, used implicitly when the password field is set
 					// form: /p/fileid=asdf;token=asdf;gid=123;page=321;passkey=asdf/filename
 
-					// we allow access depending on the proxy mode retrieved from the server when the client is first started.
+					// we allow access depending on the proxy mode retrieved from the server when the client is first
+					// started.
 					// 0 = disabled
 					// 1 = local networks open
 					// 2 = external networks open
@@ -262,8 +254,11 @@ public class HTTPResponse {
 						if (!requirePasskey) {
 							acceptPasskey = true;
 						} else if (passkey != null) {
-							// The client's passkey is generated by passing the client key through a SHA-1 function together with an additional string. This passkey is then entered under My Settings.
-							// The request passkey is generated by passing the client passkey through an additional SHA-1 operation, which also includes the fileid of the requested file. This gives an unique passkey for each request.
+							// The client's passkey is generated by passing the client key through a SHA-1 function
+							// together with an additional string. This passkey is then entered under My Settings.
+							// The request passkey is generated by passing the client passkey through an additional
+							// SHA-1 operation, which also includes the fileid of the requested file. This gives an
+							// unique passkey for each request.
 
 							String expectedPasskey = MiscTools.getSHAString(
 								fileid + "I think we can put our differences behind us." + MiscTools.getSHAString(Settings.getClientKey() + "For science.").substring(0, 10) + "You monster."
@@ -301,6 +296,36 @@ public class HTTPResponse {
 							} catch (Exception e) {
 								Out.warning(session + " gid and/or page are not valid integers");
 							}
+						}
+					}
+				}
+				else if (urlparts[1].equals("t")) {
+					// sends a randomly generated file of a given length for speed testing purposes
+					if (urlparts.length < 5) {
+						responseStatusCode = 400;
+						return;
+					}
+					else {
+						int testsize = Integer.parseInt(urlparts[2]);
+						int testtime = Integer.parseInt(urlparts[3]);
+						String testkey = urlparts[4];
+
+						Out.debug("Sending threaded proxy test with testsize=" + testsize + " testtime=" + testtime + " testkey=" + testkey);
+
+						if (Math.abs(testtime - Settings.getServerTime()) > Settings.MAX_KEY_TIME_DRIFT) {
+							Out.warning(session + " Got a speedtest request with expired key");
+							responseStatusCode = 403;
+							return;
+						}
+						else if (!MiscTools.getSHAString("hentai@home-speedtest-" + testsize + "-" + testtime + "-" + Settings.getClientID() + "-" + Settings.getClientKey()).equals(testkey)) {
+							Out.warning(session + " Got a speedtest request with invalid key");
+							responseStatusCode = 403;
+							return;
+						}
+						else {
+							responseStatusCode = 200;
+							hpc = new HTTPResponseProcessorSpeedtest(testsize);
+							return;
 						}
 					}
 				}

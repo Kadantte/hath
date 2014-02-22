@@ -71,7 +71,8 @@ public class GalleryFileDownloader implements Runnable {
 	}
 
 	public int initialize() {
-		// we'll need to run this in a private thread so we can push data to the originating client at the same time we download it (pass-through), so we'll use a specialized version of the stuff found in URLConnectionTools
+		// we'll need to run this in a private thread so we can push data to the originating client at the same time we
+		// download it (pass-through), so we'll use a specialized version of the stuff found in FileDownloader
 		// this also handles negotiating file browse limits with the server
 		Out.info("Gallery File Download Request initializing for " + fileid + "...");
 
@@ -89,8 +90,10 @@ public class GalleryFileDownloader implements Runnable {
 
 				connection = source.openConnection();
 				connection.setConnectTimeout(10000);
-				connection.setReadTimeout(30000); // this doesn't always seem to work however, so we'll do it somewhat differently..
+				connection.setReadTimeout(30000); // this doesn't always seem to work however, so we'll do it somewhat
+													// differently..
 				connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.12) Gecko/20080201 Firefox/2.0.0.12");
+				connection.setRequestProperty("Hath-Request", Settings.getClientID() + "-" + MiscTools.getSHAString(Settings.getClientKey() + fileid));
 				connection.connect();
 
 				tempLength = connection.getContentLength();
@@ -107,7 +110,9 @@ public class GalleryFileDownloader implements Runnable {
 				else if (tempLength != requestedHVFile.getSize()) {
 					Out.warning("Reported contentLength " + contentLength + " does not match expected length of file " + fileid + " (" + connection + ")");
 
-					// this could be more solid, but it's not important. this will only be tested if there is a fail, and even if the fail somehow matches the size of the error images, the server won't actually increase the limit unless we're close to it.
+					// this could be more solid, but it's not important. this will only be tested if there is a fail,
+					// and even if the fail somehow matches the size of the error images, the server won't actually
+					// increase the limit unless we're close to it.
 					if (retval == 0 && (tempLength == 28658 || tempLength == 1009)) {
 						Out.warning("We appear to have reached the image limit. Attempting to contact the server to ask for a limit increase...");
 						client.getServerHandler().notifyMoreFiles();
@@ -128,8 +133,10 @@ public class GalleryFileDownloader implements Runnable {
 			contentLength = tempLength;
 			databuffer = new byte[contentLength];
 
-			// at this point, everything is ready to receive data from the server and pass it to the client. in order to do this, we'll fork off a new thread to handle the reading, while this thread returns.
-			// control will thus pass to the HTTPSession where this HRP's read functions will be called, and data will be written to the connection this proxy request originated from.
+			// at this point, everything is ready to receive data from the server and pass it to the client. in order to
+			// do this, we'll fork off a new thread to handle the reading, while this thread returns.
+			// control will thus pass to the HTTPSession where this HRP's read functions will be called, and data will
+			// be written to the connection this proxy request originated from.
 
 			myThread.start();
 
@@ -142,6 +149,7 @@ public class GalleryFileDownloader implements Runnable {
 		return 500;
 	}
 
+	@Override
 	public void run() {
 		int trycounter = 3;
 		boolean complete = false;
@@ -159,7 +167,9 @@ public class GalleryFileDownloader implements Runnable {
 				int time = 0; // counts the approximate time (in nanofortnights) since last byte was received
 				int bytestatcounter = 0;
 
-				// note: this may seen unnecessarily hackjob-ish, but because the built-in timeouts were unreliable at best (at the time of testing), this was a way to deal with the uncertainties of the interwebs. not exactly C10K stuff, but it works.
+				// note: this may seen unnecessarily hackjob-ish, but because the built-in timeouts were unreliable at
+				// best (at the time of testing), this was a way to deal with the uncertainties of the interwebs. not
+				// exactly C10K stuff, but it works.
 				while (writeoff < contentLength) {
 					if (bis.available() > 0) {
 						// read-data loop..
@@ -237,6 +247,8 @@ public class GalleryFileDownloader implements Runnable {
 					tmpfile.delete();
 					Out.debug("Requested file " + fileid + " exists or cannot be cached, and was dropped.");
 				}
+
+				Out.info("Gallery File Download Request complete for " + fileid);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

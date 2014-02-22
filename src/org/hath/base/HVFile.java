@@ -47,7 +47,8 @@ public class HVFile {
 	}
 
 	public boolean localFileMatches(File file) {
-		// note: we only check the sha-1 hash and filesize here, to save resources and avoid dealing with the crummy image handlers
+		// note: we only check the sha-1 hash and filesize here, to save resources and avoid dealing with the crummy
+		// image handlers
 		try {
 			return file.length() == size && hash.startsWith(MiscTools.getSHAString(file));
 		} catch (java.io.IOException e) {
@@ -133,6 +134,7 @@ public class HVFile {
 		return null;
 	}
 
+	@Override
 	public String toString() {
 		return getFileid();
 	}

@@ -23,7 +23,6 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
-
 public class HTTPBandwidthMonitor {
 	private int sleepTrigger;
 

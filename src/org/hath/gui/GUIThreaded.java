@@ -39,6 +39,7 @@ public class GUIThreaded implements Runnable {
 		myThread.start();
 	}
 
+	@Override
 	public void run() {
 		if (action == ACTION_SHUTDOWN) {
 			client.shutdown();

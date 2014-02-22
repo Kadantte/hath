@@ -27,6 +27,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -159,6 +161,7 @@ public class ServerHandler {
 				Out.info("");
 
 				try {
+					java.lang.Thread.currentThread();
 					Thread.sleep(90000);
 				} catch (Exception e) {
 				}
@@ -175,7 +178,27 @@ public class ServerHandler {
 				Out.info("");
 
 				HentaiAtHomeClient.dieWithError("FAIL_OTHER_CLIENT_CONNECTED");
-				// return false;
+			}
+			else if (failcode.startsWith("FAIL_CID_IN_USE")) {
+				Out.info("");
+				Out.info("************************************************************************************************************************************");
+				Out.info("The server detected that another client is already using this client ident.");
+				Out.info("If you want to run more than one client, you have to apply for additional idents.");
+				Out.info("The program will now terminate.");
+				Out.info("************************************************************************************************************************************");
+				Out.info("");
+
+				HentaiAtHomeClient.dieWithError("FAIL_CID_IN_USE");
+			}
+			else if (failcode.startsWith("FAIL_RESET_SUSPENDED")) {
+				Out.info("");
+				Out.info("************************************************************************************************************************************");
+				Out.info("This client ident has been revoked for having too many cache resets.");
+				Out.info("The program will now terminate.");
+				Out.info("************************************************************************************************************************************");
+				Out.info("");
+
+				HentaiAtHomeClient.dieWithError("FAIL_RESET_SUSPENDED");
 			}
 		}
 
@@ -183,7 +206,8 @@ public class ServerHandler {
 	}
 
 	public void notifyUncachedFiles(List<HVFile> deletedFiles) {
-		// note: as we want to avoid POST, we do this as a long GET. to avoid exceeding certain URL length limitations, we uncache at most 50 files at a time
+		// note: as we want to avoid POST, we do this as a long GET. to avoid exceeding certain URL length limitations,
+		// we uncache at most 50 files at a time
 		int deleteCount = deletedFiles.size();
 
 		if (deleteCount > 0) {
@@ -247,7 +271,8 @@ public class ServerHandler {
 		cs.stillAlive();
 	}
 
-	// this MUST NOT be called after the client has started up, as it will clear out and reset the client on the server, leaving the client in a limbo until restart
+	// this MUST NOT be called after the client has started up, as it will clear out and reset the client on the server,
+	// leaving the client in a limbo until restart
 	public void loadClientSettingsFromServer() {
 		Stats.setProgramStatus("Loading settings from server...");
 		Out.info("Connecting to the Hentai@Home Server to register client with ID " + Settings.getClientID() + "...");
@@ -287,7 +312,8 @@ public class ServerHandler {
 		if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {
 			Settings.parseAndUpdateSettings(sr.getResponseText());
 			Out.info("Finished applying settings");
-			// client.getCacheHandler().recheckFreeDiskSpace(); - we're not bothering to recheck the free space as the client doesn't accept live reductions of disk space
+			// client.getCacheHandler().recheckFreeDiskSpace(); - we're not bothering to recheck the free space as the
+			// client doesn't accept live reductions of disk space
 			return true;
 		}
 		else {
@@ -310,11 +336,11 @@ public class ServerHandler {
 		}
 	}
 
-	public Hashtable<String, String> getFileTokens(List<GalleryFile> requestTokens) {
+	public Hashtable<String, String> getFileTokens(List<String> requestTokens) {
 		String tokens = "";
 
-		for (GalleryFile gf : requestTokens) {
-			tokens = tokens.concat(gf.getFileid() + ";");
+		for (String token : requestTokens) {
+			tokens = tokens.concat(token + ";");
 		}
 
 		URL tokenURL = getServerConnectionURL(ACT_FILE_TOKENS, tokens);
@@ -357,7 +383,8 @@ public class ServerHandler {
 				String fileid = s[0];
 				String host = s[1];
 
-				// verify that we have valid ID and Key before we build an URL from it, in case the server has been compromised somehow...
+				// verify that we have valid ID and Key before we build an URL from it, in case the server has been
+				// compromised somehow...
 				if (HVFile.isValidHVFileid(fileid) && key.matches("^[0-9]{6}-[a-z0-9]{40}$")) {
 					URL source = new URL("http", host, 80, "/image.php?f=" + fileid + "&t=" + key);
 
@@ -380,6 +407,36 @@ public class ServerHandler {
 		return returnText.toString();
 	}
 
+	public String doThreadedProxyTest(String ipaddr, int port, int testsize, int testcount, int testtime, String testkey) {
+		int successfulTests = 0;
+		long totalTimeMillis = 0;
+
+		Out.debug("Running threaded proxy test against ipaddr=" + ipaddr + " port=" + port + " testsize=" + testsize + " testcount=" + testcount + " testtime=" + testtime + " testkey=" + testkey);
+
+		try {
+			List<FileDownloader> testfiles = Collections.checkedList(new ArrayList<FileDownloader>(), FileDownloader.class);
+
+			for (int i = 0; i < testcount; i++) {
+				URL source = new URL("http", ipaddr, port, "/t/" + testsize + "/" + testtime + "/" + testkey + "/" + (int) Math.floor(Math.random() * Integer.MAX_VALUE));
+				Out.debug("Test thread: " + source);
+				FileDownloader dler = new FileDownloader(source, 10000, 60000);
+				testfiles.add(dler);
+				dler.startAsyncDownload();
+			}
+
+			for (FileDownloader dler : testfiles) {
+				if (dler.waitAsyncDownload()) {
+					successfulTests += 1;
+					totalTimeMillis += dler.getDownloadTimeMillis();
+				}
+			}
+		} catch (java.net.MalformedURLException e) {
+			HentaiAtHomeClient.dieWithError(e);
+		}
+
+		return "OK:" + successfulTests + "-" + totalTimeMillis;
+	}
+
 	public String doProxyTest(String ipaddr, int port, String fileid, String keystamp) {
 		if (!HVFile.isValidHVFileid(fileid)) {
 			Out.error("Encountered an invalid fileid in doProxyTest: " + fileid);
@@ -390,10 +447,12 @@ public class ServerHandler {
 			URL source = new URL("http", ipaddr, port, "/h/" + fileid + "/keystamp=" + keystamp + "/test.jpg");
 			Out.info("Running a proxy test against " + source + ".");
 
-			// determine the approximate ping time to the other client (if available, done on a best-effort basis). why isn't there a built-in ping in java anyway?
+			// determine the approximate ping time to the other client (if available, done on a best-effort basis). why
+			// isn't there a built-in ping in java anyway?
 			int pingtime = 0;
 
-			// juuuuuust in case someone manages to inject a faulty IP address, we don't want to pass that unsanitized to an exec
+			// juuuuuust in case someone manages to inject a faulty IP address, we don't want to pass that unsanitized
+			// to an exec
 			if (!ipaddr.matches("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$")) {
 				Out.warning("Invalid IP address: " + ipaddr);
 			}
@@ -405,13 +464,13 @@ public class ServerHandler {
 				if (whichOS != null) {
 					if (whichOS.toLowerCase().indexOf("windows") > -1) {
 						// windows style
-						pingcmd = "ping " + ipaddr + " -n 3";
+						pingcmd = "ping -n 3 " + ipaddr;
 					}
 				}
 
 				if (pingcmd == null) {
 					// linux/unix/bsd/macos style
-					pingcmd = "ping " + ipaddr + " -c 3";
+					pingcmd = "ping -c 3 " + ipaddr;
 				}
 
 				Process p = null;
@@ -428,7 +487,8 @@ public class ServerHandler {
 					String read = null;
 
 					while ((read = br.readLine()) != null) {
-						// try to parse the ping result and extract the result. this will work as long as the time is enclosed between "time=" and "ms", which it should be both in windows and linux. YMMV.
+						// try to parse the ping result and extract the result. this will work as long as the time is
+						// enclosed between "time=" and "ms", which it should be both in windows and linux. YMMV.
 						int indexTime = read.indexOf("time=");
 
 						if (indexTime >= 0) {
@@ -436,7 +496,8 @@ public class ServerHandler {
 							int indexNumEnd = read.indexOf("ms", indexNumStart);
 
 							if (indexNumStart > 0 && indexNumEnd > 0) {
-								// parsing as double then casting, since linux gives a decimal number while windows doesn't
+								// parsing as double then casting, since linux gives a decimal number while windows
+								// doesn't
 								pingresult += (int) Double.parseDouble(read.substring(indexNumStart, indexNumEnd).trim());
 								++pingcount;
 							}
@@ -469,7 +530,9 @@ public class ServerHandler {
 			long startTime = System.currentTimeMillis();
 
 			if (downloadAndCacheFile(source, fileid)) {
-				// this is mostly trial-and-error. we cut off 3 times the ping directly for TCP overhead (TCP three-way handshake + request/1st byte delay) , as well as cut off a factor of (1 second - pingtime) . this is capped to 200ms ping.
+				// this is mostly trial-and-error. we cut off 3 times the ping directly for TCP overhead (TCP three-way
+				// handshake + request/1st byte delay) , as well as cut off a factor of (1 second - pingtime) . this is
+				// capped to 200ms ping.
 				long dlMillis = System.currentTimeMillis() - startTime;
 				pingtime = Math.min(200, pingtime);
 				double dlTime = Math.max(0, ((dlMillis * (1.0 - pingtime / 1000.0) - pingtime * 3) / 1000.0));
@@ -493,7 +556,9 @@ public class ServerHandler {
 				tmpfile.delete();
 			}
 
-			if (URLConnectionTools.saveFile(source, tmpfile, 10000, 30000)) {
+			FileDownloader dler = new FileDownloader(source, 10000, 30000);
+
+			if (dler.saveFile(tmpfile)) {
 				HVFile hvFile = HVFile.getHVFileFromFile(tmpfile, true);
 
 				if (hvFile != null) {

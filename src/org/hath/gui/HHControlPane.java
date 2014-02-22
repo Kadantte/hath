@@ -60,7 +60,8 @@ public class HHControlPane extends JPanel {
 
 	public void updateData() {
 		statPane.updateStats();
-		// graphPane.repaint(); - don't do this, it causes random warpings on the graph as well as a fairly high CPU usage.
+		// graphPane.repaint(); - don't do this, it causes random warpings on the graph as well as a fairly high CPU
+		// usage.
 	}
 
 	private class StatPane extends JPanel implements StatListener {
@@ -78,6 +79,7 @@ public class HHControlPane extends JPanel {
 			repaint();
 		}
 
+		@Override
 		public void statChanged(String stat) {
 			repaint(10);
 		}
@@ -226,6 +228,7 @@ public class HHControlPane extends JPanel {
 			repaint();
 		}
 
+		@Override
 		public void statChanged(String stat) {
 			if (stat.equals("bytesSentHistory")) {
 				repaint();
@@ -287,8 +290,10 @@ public class HHControlPane extends JPanel {
 				bytesLast15Min = 0;
 				bytesLast60Min = 0;
 
-				// this correction was made to avoid the blips that are caused by the packets-instead-of-bytes measurements, but the method was changed so it's no longer necessary
-				// int forcedMaxBytesPerDecaSec = Settings.getThrottleBytesPerSec() > 0 ? Settings.getThrottleBytesPerSec() * 10 : Integer.MAX_VALUE;
+				// this correction was made to avoid the blips that are caused by the packets-instead-of-bytes
+				// measurements, but the method was changed so it's no longer necessary
+				// int forcedMaxBytesPerDecaSec = Settings.getThrottleBytesPerSec() > 0 ?
+				// Settings.getThrottleBytesPerSec() * 10 : Integer.MAX_VALUE;
 
 				// we'll use the throttle if set, and guess based on the outgoing speed the server has if not
 				double guessedMaxBytesPerDecaSec = 0;
@@ -318,7 +323,8 @@ public class HHControlPane extends JPanel {
 					}
 				}
 
-				// if our guess was too low, correct the graph. this should never happen if the throttle is set, but could occur if we guess based on historic speed.
+				// if our guess was too low, correct the graph. this should never happen if the throttle is set, but
+				// could occur if we guess based on historic speed.
 				if (actualMaxBytesPerDecaSec > guessedMaxBytesPerDecaSec) {
 					double correction = guessedMaxBytesPerDecaSec / actualMaxBytesPerDecaSec;
 

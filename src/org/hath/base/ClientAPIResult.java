@@ -37,6 +37,7 @@ public class ClientAPIResult {
 		return resultText;
 	}
 
+	@Override
 	public String toString() {
 		return "{ClientAPIResult: command=" + command + ",  resultText=" + resultText + "}";
 	}

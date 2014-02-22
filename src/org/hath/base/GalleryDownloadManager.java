@@ -42,7 +42,10 @@ public class GalleryDownloadManager implements Runnable {
 		this.client = client;
 		processedHHDLFiles = new ArrayList<File>();
 		pendingGalleries = new ArrayList<Gallery>();
-		lastTokenRequest = System.currentTimeMillis() + 3600060; // we wait until one hour after client start before we start requesting tokens, so the server has time to qualify the client. there's no point reducing this, as it's checked server-side.
+		lastTokenRequest = System.currentTimeMillis() + 3600060; // we wait until one hour after client start before we
+																	// start requesting tokens, so the server has time
+																	// to qualify the client. there's no point reducing
+																	// this, as it's checked server-side.
 
 		try {
 			hhdldir = FileTools.checkAndCreateDir(new File("hathdl"));
@@ -55,12 +58,14 @@ public class GalleryDownloadManager implements Runnable {
 		myThread.start();
 	}
 
+	@Override
 	public void run() {
 		while (!client.isShuttingDown()) {
 			long sleepTime = 10000;
 
 			if (client.isSuspended()) {
-				lastTokenRequest = System.currentTimeMillis() + 960000; // again waiting until 15 minutes after a suspend
+				lastTokenRequest = System.currentTimeMillis() + 960000; // again waiting until 15 minutes after a
+																		// suspend
 				sleepTime = 60000;
 			} else {
 				ArrayList<File> process = new ArrayList<File>();
@@ -113,7 +118,7 @@ public class GalleryDownloadManager implements Runnable {
 										files = Integer.parseInt(split[1]);
 										galleryFiles = new GalleryFile[files];
 									} else if (split[0].equals("TITLE")) {
-										title = split[1].replaceAll("(\\*|\\\"|\\\\|<|>|:\\|\\?)", "");
+										title = split[1].replaceAll("(\\*|\\\"|\\\\|<|>|:\\|\\?)", "").replaceAll("\\s+", " ").replaceAll("(^\\s+|\\s+$)", "");
 
 										if (title.length() > 100) {
 											todir = new File(downloadeddir, title.substring(0, 97) + "... [" + gid + "]");
@@ -176,7 +181,7 @@ public class GalleryDownloadManager implements Runnable {
 					}
 
 					if (doDownload) {
-						List<GalleryFile> requestTokens = new ArrayList<GalleryFile>();
+						List<GalleryFile> galleryFiles = new ArrayList<GalleryFile>();
 						List<Gallery> completed = new ArrayList<Gallery>();
 
 						for (Gallery g : pendingGalleries) {
@@ -184,7 +189,7 @@ public class GalleryDownloadManager implements Runnable {
 								break;
 							}
 
-							g.galleryPass(requestTokens);
+							g.galleryPass(galleryFiles);
 
 							if (g.getState() != Gallery.STATE_PENDING) {
 								completed.add(g);
@@ -195,8 +200,14 @@ public class GalleryDownloadManager implements Runnable {
 							pendingGalleries.remove(g);
 						}
 
-						if (!requestTokens.isEmpty() && (lastTokenRequest < System.currentTimeMillis() - 60000)) {
+						if (!galleryFiles.isEmpty() && (lastTokenRequest < System.currentTimeMillis() - 60000)) {
 							// request up to 20 tokens a minute from the server
+
+							List<String> requestTokens = new ArrayList<String>();
+
+							for (GalleryFile gf : galleryFiles) {
+								requestTokens.add(gf.getFileid());
+							}
 
 							lastTokenRequest = System.currentTimeMillis();
 							Hashtable<String, String> tokens = client.getServerHandler().getFileTokens(requestTokens);
@@ -204,7 +215,7 @@ public class GalleryDownloadManager implements Runnable {
 							if (tokens == null) {
 								sleepTime = 180000;
 							} else {
-								for (GalleryFile gf : requestTokens) {
+								for (GalleryFile gf : galleryFiles) {
 									String token = tokens.get(gf.getFileid());
 
 									if (token != null) {

@@ -157,7 +157,8 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 		// create the systray
 
 		if (SystemTray.isSupported()) {
-			trayFirstMinimize = true; // popup the "still running" box the first time the client is minimized to the systray this run
+			trayFirstMinimize = true; // popup the "still running" box the first time the client is minimized to the
+										// systray this run
 			setDefaultCloseOperation(DO_NOTHING_ON_CLOSE); // we'll handle this with the WindowListener
 
 			tray = SystemTray.getSystemTray();
@@ -205,6 +206,7 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 		setSuspendEnabled(true);
 	}
 
+	@Override
 	public void run() {
 		while (true) {
 			try {
@@ -225,15 +227,18 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 		}
 	}
 
+	@Override
 	public void notifyWarning(String title, String text) {
 		JOptionPane.showMessageDialog(this, text, title, JOptionPane.WARNING_MESSAGE);
 	}
 
+	@Override
 	public void notifyError(String reason) {
 		JOptionPane.showMessageDialog(this, reason + "\n\nFor more information, look in the log files found in the data directory.", "Hentai@Home has encountered an error", JOptionPane.ERROR_MESSAGE);
 	}
 
 	// ActionListener for the JMenuBar
+	@Override
 	public void actionPerformed(ActionEvent e) {
 		String cmd = e.getActionCommand();
 
@@ -269,12 +274,15 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 	}
 
 	// WindowListener for the JFrame
+	@Override
 	public void windowActivated(WindowEvent e) {
 	}
 
+	@Override
 	public void windowClosed(WindowEvent e) {
 	}
 
+	@Override
 	public void windowClosing(WindowEvent e) {
 		setVisible(false);
 
@@ -284,32 +292,41 @@ public class HentaiAtHomeClientGUI extends JFrame implements HathGUI, ActionList
 		}
 	}
 
+	@Override
 	public void windowDeactivated(WindowEvent e) {
 	}
 
+	@Override
 	public void windowDeiconified(WindowEvent e) {
 	}
 
+	@Override
 	public void windowIconified(WindowEvent e) {
 	}
 
+	@Override
 	public void windowOpened(WindowEvent e) {
 	}
 
 	// MouseListener for the SystemTray
+	@Override
 	public void mouseClicked(MouseEvent e) {
 		setVisible(true);
 	}
 
+	@Override
 	public void mouseEntered(MouseEvent e) {
 	}
 
+	@Override
 	public void mouseExited(MouseEvent e) {
 	}
 
+	@Override
 	public void mousePressed(MouseEvent e) {
 	}
 
+	@Override
 	public void mouseReleased(MouseEvent e) {
 	}
 

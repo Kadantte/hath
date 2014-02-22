@@ -40,6 +40,7 @@ public class CakeSphere implements Runnable {
 		myThread.start();
 	}
 
+	@Override
 	public void run() {
 		ServerResponse sr = ServerResponse.getServerResponse(ServerHandler.ACT_STILL_ALIVE, handler);
 		if (sr.getResponseStatus() == ServerResponse.RESPONSE_STATUS_OK) {

@@ -67,6 +67,7 @@ public class HTTPSession implements Runnable {
 		httpServer.removeHTTPSession(this);
 	}
 
+	@Override
 	public void run() {
 		InputStreamReader isr = null;
 		BufferedReader br = null;
@@ -112,12 +113,14 @@ public class HTTPSession implements Runnable {
 			// parse the request - this will also update the response code and initialize the proper response processor
 			hr.parseRequest(request, localNetworkAccess);
 
-			// get the status code and response processor - in case of an error, this will be a text type with the error message
+			// get the status code and response processor - in case of an error, this will be a text type with the error
+			// message
 			hpc = hr.getHTTPResponseProcessor();
 			int statusCode = hr.getResponseStatusCode();
 			int contentLength = hpc.getContentLength();
 
-			// we'll create a new date formatter for each session instead of synchronizing on a shared formatter. (sdf is not thread-safe)
+			// we'll create a new date formatter for each session instead of synchronizing on a shared formatter. (sdf
+			// is not thread-safe)
 			SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", java.util.Locale.US);
 			sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
@@ -142,11 +145,13 @@ public class HTTPSession implements Runnable {
 			byte[] headerBytes = header.toString().getBytes(Charset.forName("ISO-8859-1"));
 			bs.write(headerBytes, 0, headerBytes.length);
 
-			// subtract the total size of the header from the size of the first data packet sent. this avoids a problem where the third packet is undersize.
+			// subtract the total size of the header from the size of the first data packet sent. this avoids a problem
+			// where the third packet is undersize.
 			int pendingHeaderLength = headerBytes.length;
 
 			if (pendingHeaderLength >= Settings.TCP_PACKET_SIZE_LOW) {
-				// flush header if we're already above the desirable max data packet size. (this shouldn't actually be possible, but better safe than trying to write a negative number of bytes.)
+				// flush header if we're already above the desirable max data packet size. (this shouldn't actually be
+				// possible, but better safe than trying to write a negative number of bytes.)
 				bs.flush();
 				pendingHeaderLength = 0;
 			}
@@ -176,11 +181,13 @@ public class HTTPSession implements Runnable {
 						Out.debug(this + " Local network access detected, skipping throttle.");
 
 						if (hpc instanceof HTTPResponseProcessorProxy) {
-							// split the request even though it is local. otherwise the system will stall waiting for the proxy to serve the request fully before any data at all is returned.
+							// split the request even though it is local. otherwise the system will stall waiting for
+							// the proxy to serve the request fully before any data at all is returned.
 							int writtenBytes = 0;
 
 							while (writtenBytes < contentLength) {
-								// write a packet of data and flush. getBytesRange will block if new data is not yet available.
+								// write a packet of data and flush. getBytesRange will block if new data is not yet
+								// available.
 
 								int writeLen = Math.min(Settings.TCP_PACKET_SIZE_HIGH - pendingHeaderLength, contentLength - writtenBytes);
 								bs.write(hpc.getBytesRange(writeLen), 0, writeLen);
@@ -197,7 +204,8 @@ public class HTTPSession implements Runnable {
 						}
 					}
 					else {
-						// bytes written to the local network do not count against the bandwidth stats. these do, however.
+						// bytes written to the local network do not count against the bandwidth stats. these do,
+						// however.
 						Stats.bytesRcvd(rcvdBytes);
 
 						HTTPBandwidthMonitor bwm = httpServer.getBandwidthMonitor();

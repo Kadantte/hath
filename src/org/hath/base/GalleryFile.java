@@ -41,12 +41,13 @@ public class GalleryFile {
 	private HVFile hvfile;
 	private String fileid, filename, token;
 	private int gid, page;
-	private long tokentime; // tokens expire after about an hour, so we'll need to keep track of this in case a file repeatedly fails downloading
+	private long tokentime; // tokens expire after about an hour, so we'll need to keep track of this in case a file
+							// repeatedly fails downloading
 	private int state;
 	private int retrycount;
 	private long lastretry;
 
-	private GalleryFile(HentaiAtHomeClient client, File todir, String fileid, int gid, int page, String filename) {
+	private GalleryFile(HentaiAtHomeClient client, File todir, String fileid, int gid, int page, String givenFilename) {
 		this.hvfile = HVFile.getHVFileFromFileid(fileid);
 
 		this.client = client;
@@ -55,8 +56,8 @@ public class GalleryFile {
 		this.gid = gid;
 		this.page = page;
 
-		int fileExtIndex = filename.lastIndexOf(".");
-		this.filename = filename.substring(0, fileExtIndex > -1 ? fileExtIndex : Math.min(100, filename.length())).concat("." + hvfile.getType());
+		int fileExtIndex = givenFilename.lastIndexOf(".");
+		filename = givenFilename.substring(0, Math.min(80, fileExtIndex > -1 ? fileExtIndex : givenFilename.length())) + "." + hvfile.getType();
 		tofile = new File(todir, filename);
 
 		this.state = STATE_PENDING;
@@ -91,7 +92,8 @@ public class GalleryFile {
 	}
 
 	public int attemptDownload() {
-		// wait at least six minutes between each download attempt, to allow the host routing cache to clear. increase retry delay by 6 minutes per fail.
+		// wait at least six minutes between each download attempt, to allow the host routing cache to clear. increase
+		// retry delay by 6 minutes per fail.
 		if (System.currentTimeMillis() < lastretry + 360000 * retrycount) {
 			return FILE_TEMPFAIL;
 		}
@@ -121,7 +123,8 @@ public class GalleryFile {
 			int sleepTime = 1000;
 			int runTime = 0;
 
-			// we check every second, and give it max five minutes before moving on. if gfd finishes it after we give up, it will be caught on the next pass-through.
+			// we check every second, and give it max five minutes before moving on. if gfd finishes it after we give
+			// up, it will be caught on the next pass-through.
 			do {
 				try {
 					Thread.sleep(sleepTime);

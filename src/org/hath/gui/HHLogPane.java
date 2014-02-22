@@ -44,7 +44,7 @@ public class HHLogPane extends JPanel implements OutListener {
 	public HHLogPane() {
 		setLayout(new BorderLayout());
 
-		textArea = new JTextArea();
+		textArea = new JTextArea("");
 		textArea.setFont(new Font("Courier", Font.PLAIN, 11));
 		textArea.setEditable(false);
 		textArea.setLineWrap(false);
@@ -61,6 +61,7 @@ public class HHLogPane extends JPanel implements OutListener {
 		Out.addOutListener(this);
 	}
 
+	@Override
 	public void outputWritten(String entry) {
 		addText(entry);
 	}
@@ -76,6 +77,11 @@ public class HHLogPane extends JPanel implements OutListener {
 		}
 
 		textArea.append(toAdd + "\n");
-		textArea.setCaretPosition(textArea.getText().length());
+
+		try {
+			textArea.setCaretPosition(textArea.getText().length());
+		} catch (java.lang.NullPointerException e) {
+			// Java 7 sometimes throws up when doing getText()..
+		}
 	}
 }

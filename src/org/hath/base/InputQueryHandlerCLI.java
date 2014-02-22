@@ -38,6 +38,7 @@ public class InputQueryHandlerCLI implements InputQueryHandler {
 		return new InputQueryHandlerCLI();
 	}
 
+	@Override
 	public String queryString(String querytext) {
 		System.out.print(querytext + ": ");
 		String s = null;

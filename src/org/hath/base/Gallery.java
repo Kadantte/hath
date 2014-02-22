@@ -53,7 +53,8 @@ public class Gallery {
 		return state;
 	}
 
-	// takes and modifies list of the files that needs a token - these are borked together and requested by the main thread
+	// takes and modifies list of the files that needs a token - these are borked together and requested by the main
+	// thread
 	public void galleryPass(List<GalleryFile> requestTokens) {
 		boolean allFilesProcessed = true;
 		boolean errorsEncountered = false;

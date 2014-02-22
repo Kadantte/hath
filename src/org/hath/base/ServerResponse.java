@@ -56,7 +56,8 @@ public class ServerResponse {
 	}
 
 	private static ServerResponse getServerResponse(URL serverConnectionURL, ServerHandler retryhandler, String retryact) {
-		String serverResponse = URLConnectionTools.getTextContent(serverConnectionURL, 3600000);
+		FileDownloader dler = new FileDownloader(serverConnectionURL, 3600000);
+		String serverResponse = dler.getTextContent();
 
 		if (serverResponse == null) {
 			return new ServerResponse(RESPONSE_STATUS_NULL, "NO_RESPONSE");
@@ -90,6 +91,7 @@ public class ServerResponse {
 		}
 	}
 
+	@Override
 	public String toString() {
 		java.lang.StringBuffer sb = new java.lang.StringBuffer();
 

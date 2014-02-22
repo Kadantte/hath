@@ -119,7 +119,8 @@ public class HTTPServer implements Runnable {
 
 	public void nukeOldConnections(boolean killall) {
 		synchronized (sessions) {
-			// in some rare cases, the connection is unable to remove itself from the session list. if so, it will return true for doTimeoutCheck, meaning that we will have to clear it out from here instead
+			// in some rare cases, the connection is unable to remove itself from the session list. if so, it will
+			// return true for doTimeoutCheck, meaning that we will have to clear it out from here instead
 			List<HTTPSession> remove = Collections.checkedList(new ArrayList<HTTPSession>(), HTTPSession.class);
 
 			for (HTTPSession session : sessions) {
@@ -138,6 +139,7 @@ public class HTTPServer implements Runnable {
 		allowNormalConnections = true;
 	}
 
+	@Override
 	public void run() {
 		try {
 			while (true) {
@@ -146,19 +148,21 @@ public class HTTPServer implements Runnable {
 				synchronized (sessions) {
 					boolean forceClose = false;
 
-					// private network: localhost, 127.x.y.z, 10.0.0.0 - 10.255.255.255, 172.16.0.0 - 172.31.255.255, 192.168.0.0 - 192.168.255.255, 169.254.0.0 -169.254.255.255
+					// private network: localhost, 127.x.y.z, 10.0.0.0 - 10.255.255.255, 172.16.0.0 - 172.31.255.255,
+					// 192.168.0.0 - 192.168.255.255, 169.254.0.0 -169.254.255.255
 
 					InetAddress addr = s.getInetAddress();
 					String addrString = addr.toString();
 					String myInetAddr = Settings.getClientHost().replace("::ffff:", "");
-					boolean localNetworkAccess = java.util.regex.Pattern.matches("^((" + myInetAddr + ")|(localhost)|(127\\.)|(10\\.)|(192\\.168\\.)|(172\\.((1[6-9])|(2[0-9])|(3[0-1]))\\.)|(169\\.254\\.)).*$", addr.getHostAddress());
+					boolean localNetworkAccess = java.util.regex.Pattern.matches("^((" + myInetAddr + ")|(localhost)|(127\\.)|(10\\.)|(192\\.168\\.)|(172\\.((1[6-9])|(2[0-9])|(3[0-1]))\\.)|(169\\.254\\.)|(::1)|(0:0:0:0:0:0:0:1)|(fc)|(fd)).*$", addr.getHostAddress());
 					boolean apiServerAccess = Settings.isValidRPCServer(addr);
 
 					if (!apiServerAccess && !allowNormalConnections) {
 						Out.warning("Rejecting connection request during startup.");
 						forceClose = true;
 					} else if (!apiServerAccess && !localNetworkAccess) {
-						// connections from the API Server and the local network are not subject to the max connection limit or the flood control
+						// connections from the API Server and the local network are not subject to the max connection
+						// limit or the flood control
 
 						int maxConnections = Settings.getMaxConnections();
 						int currentConnections = sessions.size();
@@ -169,11 +173,13 @@ public class HTTPServer implements Runnable {
 						}
 						else {
 							if (currentConnections > maxConnections * 0.8) {
-								// let the dispatcher know that we're close to the breaking point. this will make it back off for 30 sec, and temporarily turns down the dispatch rate to half.
+								// let the dispatcher know that we're close to the breaking point. this will make it
+								// back off for 30 sec, and temporarily turns down the dispatch rate to half.
 								client.getServerHandler().notifyOverload();
 							}
 
-							// this flood control will stop clients from opening more than ten connections over a (roughly) five second floating window, and forcibly block them for 60 seconds if they do.
+							// this flood control will stop clients from opening more than ten connections over a
+							// (roughly) five second floating window, and forcibly block them for 60 seconds if they do.
 							FloodControlEntry fce = null;
 							synchronized (floodControlTable) {
 								fce = floodControlTable.get(addrString);
@@ -202,9 +208,13 @@ public class HTTPServer implements Runnable {
 						}
 					}
 					else {
-						s.setReceiveBufferSize(131072);
-						s.setSendBufferSize(131072);
-						s.setTrafficClass(8);
+						try {
+							s.setReceiveBufferSize(131072);
+							s.setSendBufferSize(131072);
+							s.setTrafficClass(8);
+						} catch (java.net.SocketException e) {
+							Out.debug("Could not set socket buffers: " + e.getMessage());
+						}
 
 						// all is well. keep truckin'
 						HTTPSession hs = new HTTPSession(s, getNewConnId(), localNetworkAccess, this);
@@ -215,7 +225,13 @@ public class HTTPServer implements Runnable {
 				}
 			}
 		} catch (java.io.IOException e) {
-			Out.warning("ServerSocket terminated while waiting for connection");
+			if (!client.isShuttingDown()) {
+				Out.error("ServerSocket terminated unexpectedly!");
+				HentaiAtHomeClient.dieWithError(e);
+			} else {
+				Out.info("ServerSocket was closed and will no longer accept new connections.");
+			}
+
 			ss = null;
 		}
 	}

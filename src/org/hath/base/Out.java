@@ -105,7 +105,7 @@ public class Out {
 	}
 
 	public static void disableLogging() {
-		info("No more logs will be written to disk.");
+		info("Logging ended.");
 		writeLogs = false;
 		try {
 			logout.flush();
@@ -272,6 +272,10 @@ public class Out {
 		}
 
 		public void println(String x, String name, int severity) {
+			if (x == null) {
+				return;
+			}
+
 			boolean output = (severity & Out.OUTPUT & ~Out.suppressedOutput) > 0;
 			boolean log = (severity & (Out.LOGOUT | Out.LOGERR)) > 0;
 

@@ -36,7 +36,9 @@ import java.net.URLConnection;
 public class URLConnectionTools {
 
 	private static final int TIMEOUT = 30000;
-	private static final int MAX_DLTIME = Integer.MAX_VALUE; // H@H note: used to pummel hostile clients who intentionally throttles speed to very low speeds to tie up stuff.
+	private static final int MAX_DLTIME = Integer.MAX_VALUE; // H@H note: used to pummel hostile clients who
+																// intentionally throttles speed to very low speeds to
+																// tie up stuff.
 	private static final int RETRIES = 3;
 
 	private static String forcedHost;
@@ -148,20 +150,24 @@ public class URLConnectionTools {
 				*/
 
 				connection.setConnectTimeout(10000);
-				connection.setReadTimeout(timeout); // this doesn't always seem to work however, so we'll do it somewhat differently..
+				connection.setReadTimeout(timeout); // this doesn't always seem to work however, so we'll do it somewhat
+													// differently..
 				connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.12) Gecko/20080201 Firefox/2.0.0.12");
 				connection.connect();
 
 				int contentLength = connection.getContentLength();
 
 				if (contentLength < 0) {
-					// H@H note: since we control all systems in this case, we'll demand that clients and servers always send the Content-Length
+					// H@H note: since we control all systems in this case, we'll demand that clients and servers always
+					// send the Content-Length
 					// (code to handle missing content length removed, look in lib if necessary)
 					Out.warning("Remote host did not send Content-Length, aborting transfer.");
 					return null;
 				}
 				else if (contentLength > 10485760) {
-					// H@H note: we don't want clients trying to provoke an outofmemory exception by returning a malformed oversized reply, so we'll limit the download size to the H@H max (10 MB). the server will never send anything this large as a response either.
+					// H@H note: we don't want clients trying to provoke an outofmemory exception by returning a
+					// malformed oversized reply, so we'll limit the download size to the H@H max (10 MB). the server
+					// will never send anything this large as a response either.
 					Out.warning("Reported contentLength " + contentLength + " on request " + source + " is out of bounds!");
 					return null;
 				}
@@ -176,7 +182,9 @@ public class URLConnectionTools {
 				int bytecounter = 0; // counts the number of bytes read
 				int time = 0; // counts the approximate time (in nanofortnights) since last byte was received
 
-				// note: this may seen unnecessarily hackjob-ish, but because the built-in timeouts were unreliable at best (at the time of testing), this was a way to deal with the uncertainties of the interwebs. not exactly C10K stuff, but it works.
+				// note: this may seen unnecessarily hackjob-ish, but because the built-in timeouts were unreliable at
+				// best (at the time of testing), this was a way to deal with the uncertainties of the interwebs. not
+				// exactly C10K stuff, but it works.
 				while (bytecounter < contentLength) {
 					if (bis.available() > 0) {
 						// read-data loop..

@@ -35,6 +35,7 @@ public class InputQueryHandlerGUI implements InputQueryHandler {
 		this.frame = frame;
 	}
 
+	@Override
 	public String queryString(String querytext) {
 		String s = null;
 
