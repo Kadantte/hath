@@ -28,28 +28,27 @@ import org.hath.base.CacheHandler.CacheListFile;
 
 public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 	private CacheHandler cacheHandler;
-	private int max_filesize, max_filecount;
+	private int max_filesize;
 	
-	private int cacheListStrlen;
+	private int cacheListStrlen, cacheListWritten;
 	private StringBuilder fileidBuffer;
-	private int fileidOffset, fileidCount;
+	private int fileidOffset;
 	private int bufferFilenum;
 
-	public HTTPResponseProcessorCachelist(CacheHandler cacheHandler, int max_filesize, int max_filecount) {
+	public HTTPResponseProcessorCachelist(CacheHandler cacheHandler, int max_filesize) {
 		this.cacheHandler = cacheHandler;
 		this.max_filesize = max_filesize <= 0 ? 10485760 : max_filesize;
-		this.max_filecount = max_filecount;
-		this.bufferFilenum = Settings.isUseMoreMemory() ? 25000 : 1000;
+		this.bufferFilenum = Settings.isUseLessMemory() ? 1000 : 25000;
 	}
 	
 	public int initialize() {
 		Out.info("Calculating cache file list parameters and preparing for send...");
-		cacheListStrlen = cacheHandler.getCachedFilesStrlen(max_filesize, max_filecount);
+		cacheListStrlen = cacheHandler.getCachedFilesStrlen(max_filesize);
+		cacheListWritten = 0;
 		Out.debug("Calculated cacheListStrlen = " + cacheListStrlen);
 
 		fileidBuffer = new StringBuilder(65 * bufferFilenum);
 		fileidOffset = 0;
-		fileidCount = 0;
 		
 		Out.info("Sending cache list, and waiting for the server to register the cached files.. (this could take a while)");
 		
@@ -65,22 +64,22 @@ public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 	}
 	
 	public byte[] getBytesRange(int len) {
-		while(fileidBuffer.length() < len) {
-			int buflen = Math.min(Math.min(cacheHandler.getCacheCount(), max_filecount) - fileidCount, bufferFilenum);
+		//Out.debug("Before: cacheListStrlen=" + cacheListStrlen + ", cacheListWritten=" + cacheListWritten + ", fileidBuffer=" + fileidBuffer.length() +", len=" + len + ", max_filesize=" + max_filesize + ", fileidOffset=" + fileidOffset);
 
-			LinkedList<CacheListFile> cachedFiles = cacheHandler.getCachedFilesRange(fileidOffset, buflen);
+		while(fileidBuffer.length() < len) {
+			LinkedList<CacheListFile> cachedFiles = cacheHandler.getCachedFilesRange(fileidOffset, bufferFilenum);
+
 			if(cachedFiles.size() < 1) {
-				HentaiAtHomeClient.dieWithError("Failed to buffer requested data for cache list write. (fileidBuffer=" + fileidBuffer.length() +", len=" + len + ", max_filecount=" + max_filecount + ", max_filesize=" + max_filesize + ", fileidOffset=" + fileidOffset + ", buflen=" + buflen + ")");
+				HentaiAtHomeClient.dieWithError("Failed to buffer requested data for cache list write. (cacheListStrlen=" + cacheListStrlen + ", cacheListWritten=" + cacheListWritten + ", fileidBuffer=" + fileidBuffer.length() +", len=" + len + ", max_filesize=" + max_filesize + ", fileidOffset=" + fileidOffset + ")");
 			}
 			
 			for(CacheListFile file : cachedFiles) {
-				if(file.getFilesize() <= max_filesize) {
+				if( (file.getFilesize() <= max_filesize) && !Settings.isStaticRange(file.getFileid()) ) {
 					fileidBuffer.append(file.getFileid() + "\n");
-					++fileidCount;
 				}
 			}
 			
-			fileidOffset += buflen;
+			fileidOffset += bufferFilenum;
 		}
 		
 		byte[] returnBytes = fileidBuffer.substring(0, len).getBytes(java.nio.charset.Charset.forName("ISO-8859-1"));
@@ -89,6 +88,10 @@ public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 		if(returnBytes.length != len) {
 			HentaiAtHomeClient.dieWithError("Length of cache list buffer (" + returnBytes.length + ") does not match requested length (" + len + ")! Bad program!");
 		}
+		
+		cacheListWritten += returnBytes.length;
+		
+		//Out.debug("After: cacheListStrlen=" + cacheListStrlen + ", cacheListWritten=" + cacheListWritten + ", fileidBuffer=" + fileidBuffer.length() +", len=" + len + ", max_filesize=" + max_filesize + ", fileidOffset=" + fileidOffset);
 		
 		return returnBytes;
 	}

@@ -72,7 +72,7 @@ public class GalleryFileDownloader implements Runnable {
 	}
 	
 	public int initialize() {
-		// we'll need to run this in a private thread so we can push data to the originating client at the same time we download it (pass-through), so we'll use a specialized version of the stuff found in URLConnectionTools
+		// we'll need to run this in a private thread so we can push data to the originating client at the same time we download it (pass-through), so we'll use a specialized version of the stuff found in FileDownloader
 		// this also handles negotiating file browse limits with the server
 		Out.info("Gallery File Download Request initializing for " + fileid + "...");
 		
@@ -92,6 +92,7 @@ public class GalleryFileDownloader implements Runnable {
 				connection.setConnectTimeout(10000);
 				connection.setReadTimeout(30000);	// this doesn't always seem to work however, so we'll do it somewhat differently..
 				connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.12) Gecko/20080201 Firefox/2.0.0.12");
+				connection.setRequestProperty("Hath-Request", Settings.getClientID() + "-" + MiscTools.getSHAString(Settings.getClientKey() + fileid));
 				connection.connect();
 				
 				tempLength = connection.getContentLength();
@@ -233,6 +234,8 @@ public class GalleryFileDownloader implements Runnable {
 					tmpfile.delete();
 					Out.debug("Requested file " + fileid + " exists or cannot be cached, and was dropped.");
 				}
+				
+				Out.info("Gallery File Download Request complete for " + fileid);
 			} catch(Exception e) {
 				e.printStackTrace();
 			}

@@ -46,7 +46,7 @@ public class GalleryFile {
 	private int retrycount;
 	private long lastretry;
 	
-	private GalleryFile(HentaiAtHomeClient client, File todir, String fileid, int gid, int page, String filename) {
+	private GalleryFile(HentaiAtHomeClient client, File todir, String fileid, int gid, int page, String givenFilename) {
 		this.hvfile = HVFile.getHVFileFromFileid(fileid);
 
 		this.client = client;
@@ -55,8 +55,8 @@ public class GalleryFile {
 		this.gid = gid;
 		this.page = page;
 		
-		int fileExtIndex = filename.lastIndexOf(".");
-		this.filename = filename.substring(0, fileExtIndex > -1 ? fileExtIndex : Math.min(100, filename.length())).concat("." + hvfile.getType());
+		int fileExtIndex = givenFilename.lastIndexOf(".");
+		filename = givenFilename.substring(0, Math.min(80, fileExtIndex > -1 ? fileExtIndex : givenFilename.length())) + "." + hvfile.getType();
 		tofile = new File(todir, filename);
 
 		this.state = STATE_PENDING;

@@ -25,13 +25,14 @@ package org.hath.base;
 
 import java.io.File;
 import java.net.InetAddress;
+import java.util.Hashtable;
 
 public class Settings {
 	public static final String NEWLINE = System.getProperty("line.separator");
 	
 	// the client build is among others used by the server to determine the client's capabilities. any forks should use the build number as an indication of compatibility with mainline, and not use it as an internal build number.
-	public static final int CLIENT_BUILD = 69;
-	public static final String CLIENT_VERSION = "1.0.10";
+	public static final int CLIENT_BUILD = 85;
+	public static final String CLIENT_VERSION = "1.2.0";
 	
 	public static final String CLIENT_API_URL = "http://rpc.hentaiathome.net/clientapi.php?";
 	
@@ -79,12 +80,14 @@ public class Settings {
 	private static boolean verifyCache = false;
 	private static boolean skipFreeSpaceCheck = false;
 	private static boolean warnNewClient = false;
-	private static boolean useMoreMemory = false;
+	private static boolean useLessMemory = false;
 	private static boolean disableBWM = false;
 	
 	private static int overrideConns = 0;
 	
 	private static File datadir = null;
+	
+	private static Hashtable<String, Integer> staticRanges = null;
 	
 	public static void setActiveClient(HentaiAtHomeClient client) {
 		activeClient = client;
@@ -274,8 +277,8 @@ public class Settings {
 			else if(setting.equals("verify_cache")) {
 				verifyCache = value.equals("true");
 			}
-			else if(setting.equals("use_more_memory")) {
-				useMoreMemory = value.equals("true");
+			else if(setting.equals("use_less_memory")) {
+				useLessMemory = value.equals("true");
 			}
 			else if(setting.equals("disable_logging")) {
 				Out.disableLogging();
@@ -288,6 +291,15 @@ public class Settings {
 			}
 			else if(setting.equals("max_connections")) {
 				overrideConns = Integer.parseInt(value);
+			}
+			else if(setting.equals("static_ranges")) {
+				staticRanges = new Hashtable<String,Integer>();
+				String[] split = value.split(";");
+				for(String s : split) {
+					if(s.length() == 4) {
+						staticRanges.put(s, 1);
+					}
+				}
 			}
 			else if(!setting.equals("silentstart")) {
 				// don't flag errors if the setting is handled by the GUI
@@ -381,8 +393,8 @@ public class Settings {
 		return verifyCache;
 	}
 	
-	public static boolean isUseMoreMemory() {
-		return useMoreMemory;
+	public static boolean isUseLessMemory() {
+		return useLessMemory;
 	}
 
 	public static boolean isSkipFreeSpaceCheck() {
@@ -438,5 +450,21 @@ public class Settings {
 			
 			return Math.max(Math.min(500, conns), MAX_CONNECTION_BASE);
 		}
+	}
+	
+	public static boolean isStaticRange(String fileid) {
+		if(staticRanges != null) {
+			return staticRanges.containsKey(fileid.substring(0, 4));
+		}
+		
+		return false;
+	}
+	
+	public static int getStaticRangeCount() {
+		if(staticRanges != null) {
+			return staticRanges.size();
+		}
+		
+		return 0;
 	}
 }

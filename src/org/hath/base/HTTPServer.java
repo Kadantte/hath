@@ -151,7 +151,7 @@ public class HTTPServer implements Runnable {
 					InetAddress addr = s.getInetAddress();
 					String addrString = addr.toString();
 					String myInetAddr = Settings.getClientHost().replace("::ffff:", "");
-					boolean localNetworkAccess = java.util.regex.Pattern.matches("^((" + myInetAddr + ")|(localhost)|(127\\.)|(10\\.)|(192\\.168\\.)|(172\\.((1[6-9])|(2[0-9])|(3[0-1]))\\.)|(169\\.254\\.)).*$", addr.getHostAddress());
+					boolean localNetworkAccess = java.util.regex.Pattern.matches("^((" + myInetAddr + ")|(localhost)|(127\\.)|(10\\.)|(192\\.168\\.)|(172\\.((1[6-9])|(2[0-9])|(3[0-1]))\\.)|(169\\.254\\.)|(::1)|(0:0:0:0:0:0:0:1)|(fc)|(fd)).*$", addr.getHostAddress());
 					boolean apiServerAccess = Settings.isValidRPCServer(addr);
 
 					if(!apiServerAccess && !allowNormalConnections) {
@@ -199,9 +199,13 @@ public class HTTPServer implements Runnable {
 						try { s.close(); } catch(Exception e) { /* LALALALALA */ }					
 					}
 					else {
-						s.setReceiveBufferSize(131072);
-						s.setSendBufferSize(131072);
-						s.setTrafficClass(8);
+						try {
+							s.setReceiveBufferSize(131072);
+							s.setSendBufferSize(131072);
+							s.setTrafficClass(8);
+						} catch(java.net.SocketException e) {
+							Out.debug("Could not set socket buffers: " + e.getMessage());
+						}
 					
 						// all is well. keep truckin'
 						HTTPSession hs = new HTTPSession(s, getNewConnId(), localNetworkAccess, this);
@@ -212,7 +216,13 @@ public class HTTPServer implements Runnable {
 				}
 			}
 		} catch(java.io.IOException e) {
-			Out.warning("ServerSocket terminated while waiting for connection");
+			if(!client.isShuttingDown()) {
+				Out.error("ServerSocket terminated unexpectedly!");
+				HentaiAtHomeClient.dieWithError(e);
+			} else {
+				Out.info("ServerSocket was closed and will no longer accept new connections.");
+			}
+
 			ss = null;
 		}
 	}

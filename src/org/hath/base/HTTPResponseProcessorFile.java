@@ -45,18 +45,13 @@ public class HTTPResponseProcessorFile extends HTTPResponseProcessor {
 
 		File file = requestedHVFile.getLocalFileRef();
 
-		if(file.exists()) {
-			try {
-				bis = new BufferedInputStream(new FileInputStream(file), Settings.isUseMoreMemory() ? 65536 : 8192);
-				responseStatusCode = 200;
-				Stats.fileSent();
-			} catch(java.io.IOException e) {
-				Out.warning("Failed reading content from " + file);
-				responseStatusCode = 500;
-			}
-		}
-		else {
-			responseStatusCode = 404;
+		try {
+			bis = new BufferedInputStream(new FileInputStream(file), Settings.isUseLessMemory() ? 8192 : 65536);
+			responseStatusCode = 200;
+			Stats.fileSent();
+		} catch(java.io.IOException e) {
+			Out.warning("Failed reading content from " + file);
+			responseStatusCode = 500;
 		}
 
 		return responseStatusCode;

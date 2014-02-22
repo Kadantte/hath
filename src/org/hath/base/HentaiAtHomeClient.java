@@ -23,14 +23,24 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 /*
 
-1.0.10 Release Notes
 
-- The client will no longer terminate if it receives an unexpected response from the server.
+1.1.3 Release Notes
 
-- Fixed a potential NullPointerException when an invalid keystamp is processed.
+- (Core) The database schema was altered to remove the unused strlen field. Note that the existing database will automatically be updated on first startup, after which you cannot downgrade without deleting the database.
 
-- The H@H Downloader will now no longer try using other H@H clients for downloads after encountering more than three failures for a file.
+- (Core) The client should now be able to understand requests that use encoded equal signs (=) in the URL.
 
+- (Core) The client will now enforce available cache size, and will therefore no longer start if the setting for the cache size is larger than the available disk space minus the total size of the files in the cache. (You can adjust this from the [url=http://g.e-hentai.org/hentaiathome.php]web interface[/url].)
+
+- (Core) Added a safety check to prevent the client from starting if it has static ranges assigned but an empty cache, which would indicate some sort of error. (To start a client that has lost its cache, you have to manually reset the static ranges from the [url=http://g.e-hentai.org/hentaiathome.php]web interface[/url].)
+
+- (Web Interface) Added an option to reset static ranges, for those cases where the cache has been lost for some reason or another.
+
+- (Web Interface) Instead of having it as a warning, the interface screen will now simply refuse to change a client's port or key while it is running.
+
+- (Dispatcher) The trust mechanics was tweaked to take static ranges better into account. Depending on the number of assigned ranges and frequency of requests, a request for a static range file can now cause a slight reduction in trust. The effect should be very minor for well-behaving clients (and will be adjusted if it's not), and is solely to prevent clients with frequent cache wipes from having ranges assigned.
+
+- (Dispatcher) New static ranges can now only be assigned to a given client once every two hours. Additionally, they will not be assigned unless the client has been running for at least 24 hours.
 
 [b]Download from the [url=http://g.e-hentai.org/hentaiathome.php]usual place[/url].[/b]
 
@@ -172,6 +182,8 @@ public class HentaiAtHomeClient implements Runnable {
 		threadSkipCounter = 1;
 		
 		long lastThreadTime = 0;
+		
+		System.gc();
 
 		while(!shutdown) {
 			try {
@@ -198,7 +210,9 @@ public class HentaiAtHomeClient implements Runnable {
 				}
 
 				if(threadSkipCounter % 30 == 15) {
-					cacheHandler.pruneOldFiles();
+					if( (int) (System.currentTimeMillis() / 1000) - Stats.getLastServerContact() < 360 ) {
+						cacheHandler.pruneOldFiles();
+					}
 				}
 				
 				if(threadSkipCounter % 2160 == 2159) {
@@ -273,7 +287,7 @@ public class HentaiAtHomeClient implements Runnable {
 		Settings.getActiveClient().shutdown(false, error);
 	}
 	
-	private void setFastShutdown() {
+	public void setFastShutdown() {
 		fastShutdown = true;
 	}
 	
@@ -351,6 +365,8 @@ public class HentaiAtHomeClient implements Runnable {
 					Settings.getActiveGUI().notifyError(shutdownErrorMessage);
 				}			
 			}
+			
+			Out.disableLogging();
 		}
 		
 		if(!fromShutdownHook) {
