@@ -23,18 +23,20 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 /*
 
-- Dropped unnecessary legacy wrapping class when generating cache lists, which should slightly reduce memory overhead during startup.
+- Some inefficient code in the random data generation used for speedtests was replaced with a much faster (10-12x) version. This should cause less CPU spikes during speed testing, and potentially higher tested speeds if the CPU was capped. (Thanks Hobbitmon)
 
-- Fixed a bug in the StringBuilder initialization for the Cachelist processor that lead to it allocating a buffer that was much larger than intended, which could lead to out-of-memory errors during startup with caches of certain size ranges.
+- With a large cache and under heavy load, having to free disk space would sometimes take a long time and therefore prevent the client from doing anything else that runs from the main thread or requires database access. Some tweaks to the free space generator should now prevent this.
 
-- Files that were part of a removed static range will now be deleted at first startup instead of being shuffled into the dynamic file pool. They would see very little traffic, and this should cause less server overhead and avoid breakage on systems with very slow CPUs.
+- Made log flushing on program shutdown more consistent.
 
 
 http://stackoverflow.com/questions/4507572/swing-jtextarea-multithreading-problem-interruptedexception
 
-[b]Download from the [url=http://g.e-hentai.org/hentaiathome.php]usual place[/url].[/b]
+[b]To update an existing client: shut it down, download [url=http://hentaiathome.net/get/HentaiAtHome_1.2.4.zip]Hentai@Home 1.2.4[/url], extract the archive, copy the jar files over the existing ones, then restart the client.[/b]
 
 [b]For information on how to join Hentai@Home, check out [url=http://forums.e-hentai.org/index.php?showtopic=19795]The Hentai@Home Project FAQ[/url].[/b]
+
+[b]Other download options can be found at [url=http://g.e-hentai.org/hentaiathome.php]the usual place[/url].[/b]
 
 */
 
@@ -285,6 +287,7 @@ public class HentaiAtHomeClient implements Runnable {
 	}
 	
 	public void setFastShutdown() {
+		Out.flushLogs();
 		fastShutdown = true;
 	}
 	
@@ -297,6 +300,8 @@ public class HentaiAtHomeClient implements Runnable {
 	}
 	
 	private void shutdown(boolean fromShutdownHook, String shutdownErrorMessage) {
+		Out.flushLogs();
+
 		if(!shutdown) {
 			shutdown = true;
 			Out.info("Shutting down...");

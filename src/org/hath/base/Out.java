@@ -106,11 +106,18 @@ public class Out {
 	}
 	
 	public static void disableLogging() {
-		info("Logging ended.");
-		writeLogs = false;
+		if( writeLogs ) {
+			info("Logging ended.");
+			writeLogs = false;
+			flushLogs();
+		}
+	}
+	
+	public static void flushLogs() {
 		try {
 			logout.flush();
-		} catch(Exception e) {}
+		} 
+		catch(Exception e) {}					
 	}
 
 	private static FileWriter startLogger(String logfile) {

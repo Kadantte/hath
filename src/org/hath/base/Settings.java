@@ -31,8 +31,8 @@ public class Settings {
 	public static final String NEWLINE = System.getProperty("line.separator");
 	
 	// the client build is among others used by the server to determine the client's capabilities. any forks should use the build number as an indication of compatibility with mainline, and not use it as an internal build number.
-	public static final int CLIENT_BUILD = 93;
-	public static final String CLIENT_VERSION = "1.2.4";
+	public static final int CLIENT_BUILD = 96;
+	public static final String CLIENT_VERSION = "1.2.5";
 	
 	public static final String CLIENT_API_URL = "http://rpc.hentaiathome.net/clientapi.php?";
 	

@@ -23,11 +23,15 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.hath.base;
 
+import java.util.Random;
+
 public class HTTPResponseProcessorSpeedtest extends HTTPResponseProcessor {	
 	int testsize = 0;
+	Random rand;
 
 	public HTTPResponseProcessorSpeedtest(int testsize) {
 		this.testsize = testsize;
+		rand = new Random();
 	}
 
 	public int getContentLength() {
@@ -42,12 +46,10 @@ public class HTTPResponseProcessorSpeedtest extends HTTPResponseProcessor {
 		return getRandomBytes(len);
 	}
 	
-	private byte[] getRandomBytes(int testsize) {
+	private byte[] getRandomBytes(int len) {
 		// generate a random body the server can use to gauge the actual upload speed capabilities of this client
-		byte[] random = new byte[testsize];
-		for(int i = 0; i < testsize; i++) {
-			random[i] = (byte) Math.floor(Math.random() * 256);
-		}
-		return random;
+		byte[] random = new byte[len];
+        rand.nextBytes(random);
+        return random;
 	}
 }

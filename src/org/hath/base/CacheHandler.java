@@ -125,7 +125,7 @@ public class CacheHandler {
 			cacheIndexCountStats = sqlite.prepareStatement("SELECT COUNT(*), SUM(filesize) FROM CacheList;");
 			queryCachelistSegment = sqlite.prepareStatement("SELECT fileid FROM CacheList WHERE fileid BETWEEN ? AND ?;");
 			queryCachedFileLasthit = sqlite.prepareStatement("SELECT lasthit FROM CacheList WHERE fileid=?;");
-			queryCachedFileSortOnLasthit = sqlite.prepareStatement("SELECT fileid, lasthit, filesize FROM CacheList ORDER BY lasthit, fileid LIMIT ?, ?;");
+			queryCachedFileSortOnLasthit = sqlite.prepareStatement("SELECT fileid, lasthit, filesize FROM CacheList ORDER BY lasthit LIMIT ?, ?;");
 			insertCachedFile = sqlite.prepareStatement("INSERT OR REPLACE INTO CacheList (fileid, lasthit, filesize, active) VALUES (?, ?, ?, 1);");
 			updateCachedFileActive = sqlite.prepareStatement("UPDATE CacheList SET active=1 WHERE fileid=?;");
 			updateCachedFileLasthit = sqlite.prepareStatement("UPDATE CacheList SET lasthit=? WHERE fileid=?;");
@@ -551,47 +551,43 @@ public class CacheHandler {
 			bytesToFree = bytesNeeded * 10;
 		}
 
-		int filesToFree = bytesToFree > 0 ? 20 : 0;
-
-		if(bytesToFree > 0 || filesToFree > 0) {
-			Out.info("CacheHandler: Freeing at least " + bytesToFree + " bytes / " + filesToFree + " files...");
+		if( bytesToFree > 0 ) {
+			Out.info("CacheHandler: Freeing at least " + bytesToFree + " bytes...");
 			List<HVFile> deleteNotify = Collections.checkedList(new ArrayList<HVFile>(), HVFile.class);
 
 			try {
-				synchronized(sqlite) {
-					queryCachedFileSortOnLasthit.setInt(1, 0);
-					queryCachedFileSortOnLasthit.setInt(2, 1);
+				while( bytesToFree > 0 && cacheCount > 0 ) {
+					synchronized(sqlite) {
+						queryCachedFileSortOnLasthit.setInt(1,  0);
+						queryCachedFileSortOnLasthit.setInt(2, 20);
 
-					while((filesToFree > 0 || bytesToFree > 0) && cacheCount > 0) {
 						ResultSet rs = queryCachedFileSortOnLasthit.executeQuery();
-						HVFile toRemove = null;
 
-						if(rs.next()) {
-							toRemove = HVFile.getHVFileFromFileid(rs.getString(1));
-						} else {
-							HentaiAtHomeClient.dieWithError("CacheHandler: Could not find more files to delete. Corrupt database?");
+						while( rs.next() ) {
+							String fileid = rs.getString(1);
+							HVFile toRemove = HVFile.getHVFileFromFileid(fileid);
+
+							if( toRemove != null ) {
+								deleteFileFromCacheNosync(toRemove);
+								bytesToFree -= toRemove.getSize();
+
+								if( !Settings.isStaticRange(fileid) ) {
+									// don't notify for static range files
+									deleteNotify.add(toRemove);
+								}
+							}
 						}
 
 						rs.close();
-
-						if(toRemove != null) {
-							bytesToFree -= toRemove.getSize();
-							filesToFree -= 1;
-							deleteFileFromCacheNosync(toRemove);
-
-							if(!Settings.isStaticRange(toRemove.getFileid())) {
-								// don't notify for static range files
-								deleteNotify.add(toRemove);
-							}
-						}
 					}
 				}
-			} catch(Exception e) {
+			}
+			catch(Exception e) {
 				Out.error("CacheHandler: Failed to perform database operation");
 				client.dieWithError(e);
 			}
 
-			if(!noServerDeleteNotify) {
+			if( !noServerDeleteNotify ) {
 				client.getServerHandler().notifyUncachedFiles(deleteNotify);
 			}
 		}
