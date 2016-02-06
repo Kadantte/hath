@@ -1,6 +1,6 @@
 /*
 
-Copyright 2008-2012 E-Hentai.org
+Copyright 2008-2014 E-Hentai.org
 http://forums.e-hentai.org/
 ehentai@gmail.com
 
@@ -23,24 +23,15 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 /*
 
+- Changes to static range handling to prevent very old static range files from being preserved indefinitely. (Only applicable on clients that have been around for a long time.)
 
-1.1.3 Release Notes
+- Fixed old file pruning when a static range file has the oldest access timestamp. Pruning is now allowed to remove static range files, but this would only happen they haven't been accessed for more than a year.
 
-- (Core) The database schema was altered to remove the unused strlen field. Note that the existing database will automatically be updated on first startup, after which you cannot downgrade without deleting the database.
+- Added functionality to handle allowing static ranges to be removed individually instead of all or nothing, without having to rebuild the database.
 
-- (Core) The client should now be able to understand requests that use encoded equal signs (=) in the URL.
+- The system will no longer make a backup of the file access database on startup. In case of corruption, rebuilding the database is almost always the best option.
 
-- (Core) The client will now enforce available cache size, and will therefore no longer start if the setting for the cache size is larger than the available disk space minus the total size of the files in the cache. (You can adjust this from the [url=http://g.e-hentai.org/hentaiathome.php]web interface[/url].)
-
-- (Core) Added a safety check to prevent the client from starting if it has static ranges assigned but an empty cache, which would indicate some sort of error. (To start a client that has lost its cache, you have to manually reset the static ranges from the [url=http://g.e-hentai.org/hentaiathome.php]web interface[/url].)
-
-- (Web Interface) Added an option to reset static ranges, for those cases where the cache has been lost for some reason or another.
-
-- (Web Interface) Instead of having it as a warning, the interface screen will now simply refuse to change a client's port or key while it is running.
-
-- (Dispatcher) The trust mechanics was tweaked to take static ranges better into account. Depending on the number of assigned ranges and frequency of requests, a request for a static range file can now cause a slight reduction in trust. The effect should be very minor for well-behaving clients (and will be adjusted if it's not), and is solely to prevent clients with frequent cache wipes from having ranges assigned.
-
-- (Dispatcher) New static ranges can now only be assigned to a given client once every two hours. Additionally, they will not be assigned unless the client has been running for at least 24 hours.
+http://stackoverflow.com/questions/4507572/swing-jtextarea-multithreading-problem-interruptedexception
 
 [b]Download from the [url=http://g.e-hentai.org/hentaiathome.php]usual place[/url].[/b]
 
@@ -85,15 +76,17 @@ public class HentaiAtHomeClient implements Runnable {
 		out.overrideDefaultOutput();
 		Out.info("Hentai@Home " + Settings.CLIENT_VERSION + " starting up");
 		Out.info("");
-		Out.info("Copyright (c) 2008-2012, E-Hentai.org - all rights reserved.");
+		Out.info("Copyright (c) 2008-2014, E-Hentai.org - all rights reserved.");
 		Out.info("This software comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to modify and redistribute it under the GPL v3 license.");
 		Out.info("");
 		
 		String sqlitejdbc = "sqlite-jdbc-3.7.2.jar";
 		if(! (new File(sqlitejdbc)).canRead()) {
-			Out.error("Required library file " + sqlitejdbc + " could not be found. Please re-download Hentai@Home.");
+			Out.error("Required library file " + sqlitejdbc + " could not be found. Please make sure you are starting the program from the H@H directory, and that all H@H files are present.");
 			System.exit(-1);
 		}
+		
+		System.setProperty("http.keepAlive", "false");
 
 		Settings.setActiveClient(this);
 		Settings.parseArgs(args);

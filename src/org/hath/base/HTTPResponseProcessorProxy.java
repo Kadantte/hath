@@ -49,20 +49,28 @@ public class HTTPResponseProcessorProxy extends HTTPResponseProcessor {
 		return gdf.getContentLength();
 	}
 
-	public byte[] getBytes() {
+	public byte[] getBytes() throws Exception {
 		return getBytesRange(getContentLength());
 	}
 
-	public byte[] getBytesRange(int len) {
+	public byte[] getBytesRange(int len) throws Exception {
 		// wait for data
 		int endoff = readoff + len;
 		
 		//Out.debug("Reading data with readoff=" + readoff + " len=" + len + " writeoff=" + writeoff);
 		
+		int timeout = 0;
+		
 		while(endoff > gdf.getCurrentWriteoff()) {
 			try {
 				Thread.currentThread().sleep(10);
 			} catch(Exception e) {}
+			
+			if( ++timeout > 30000 ) {
+				// we have waited about five minutes, probably won't happen
+				Out.info("Timeout while waiting for proxy request.");
+				throw new Exception("Timeout while waiting for proxy request.");
+			}
 		}
 		
 		byte[] range = gdf.getDownloadBufferRange(readoff, endoff);

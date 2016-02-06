@@ -67,6 +67,8 @@ public class ServerResponse {
 		}
 
 		String[] split = serverResponse.split("\n");
+		
+		Out.debug("Received response: " + serverResponse);
 
 		if(split.length < 1) {
 			return new ServerResponse(RESPONSE_STATUS_NULL, "NO_RESPONSE");

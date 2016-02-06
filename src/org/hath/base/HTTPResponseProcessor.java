@@ -40,8 +40,8 @@ public abstract class HTTPResponseProcessor {
 	
 	public void cleanup() {}
 
-	public abstract byte[] getBytes();
-	public abstract byte[] getBytesRange(int len);
+	public abstract byte[] getBytes() throws Exception;
+	public abstract byte[] getBytesRange(int len) throws Exception;
 	
 
 	public String getHeader() {

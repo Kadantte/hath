@@ -141,8 +141,11 @@ public class FileDownloader implements Runnable {
 					
 					connection.setConnectTimeout(10000);
 					connection.setReadTimeout(timeout);	// this doesn't always seem to work however, so we'll do it somewhat differently..
+					connection.setRequestProperty("Connection", "Close");
 					connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.12) Gecko/20080201 Firefox/2.0.0.12");
 					connection.connect();
+
+					Out.debug("Connected to " + source);
 					
 					int contentLength = connection.getContentLength();
 
@@ -157,6 +160,8 @@ public class FileDownloader implements Runnable {
 						return;
 					} 
 
+					Out.debug("Received contentLength=" + contentLength);
+					
 					bytearray = new byte[contentLength];
 					is = connection.getInputStream();
 					bis = new BufferedInputStream(is);
@@ -205,6 +210,8 @@ public class FileDownloader implements Runnable {
 							Thread.currentThread().sleep(5);
 						}
 					}
+					
+					Out.debug("Finished. bytecounter=" + bytecounter);
 
 					bis.close();
 					is.close();
