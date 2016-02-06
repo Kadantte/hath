@@ -23,13 +23,12 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 /*
 
-- Changes to static range handling to prevent very old static range files from being preserved indefinitely. (Only applicable on clients that have been around for a long time.)
+Clients with a large number of files could run into issues where the startup sequence took so long that you hit a server-side timeout. 
 
-- Fixed old file pruning when a static range file has the oldest access timestamp. Pruning is now allowed to remove static range files, but this would only happen they haven't been accessed for more than a year.
+This update changes how cache lists are generated and sent to the server to speed it up, hopefully by a huge amount.
 
-- Added functionality to handle allowing static ranges to be removed individually instead of all or nothing, without having to rebuild the database.
+You don't need to apply this update unless you are having issues with slow startups.
 
-- The system will no longer make a backup of the file access database on startup. In case of corruption, rebuilding the database is almost always the best option.
 
 http://stackoverflow.com/questions/4507572/swing-jtextarea-multithreading-problem-interruptedexception
 
@@ -116,11 +115,16 @@ public class HentaiAtHomeClient implements Runnable {
 		try {
 			cacheHandler.initializeCacheHandler();
 			cacheHandler.flushRecentlyAccessed();
-		} catch(java.io.IOException ioe) {
+		}
+		catch(java.io.IOException ioe) {
 			setFastShutdown();
 			dieWithError(ioe);
 			return;
 		}
+
+		Out.info("Calculating initial cache list file size...");
+		cacheHandler.calculateStartupCachedFilesStrlen();
+		Out.info("Calculated cacheListStrlen = " + cacheHandler.getStartupCachedFilesStrlen());
 
 		Stats.setProgramStatus("Starting HTTP server...");
 
@@ -133,7 +137,7 @@ public class HentaiAtHomeClient implements Runnable {
 		}
 		
 		Stats.setProgramStatus("Sending startup notification...");
-
+		
 		Out.info("Notifying the server that we have finished starting up the client...");
 		if(!serverHandler.notifyStart()) {
 			setFastShutdown();

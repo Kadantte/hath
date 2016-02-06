@@ -1,6 +1,6 @@
 /*
 
-Copyright 2008-2012 E-Hentai.org
+Copyright 2008-2014 E-Hentai.org
 http://forums.e-hentai.org/
 ehentai@gmail.com
 
@@ -28,27 +28,23 @@ import org.hath.base.CacheHandler.CacheListFile;
 
 public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 	private CacheHandler cacheHandler;
-	private int max_filesize;
 	
-	private int cacheListStrlen, cacheListWritten;
+	private int cacheListWritten, segmentIndex, segmentCount;
 	private StringBuilder fileidBuffer;
-	private int fileidOffset;
-	private int bufferFilenum;
 
-	public HTTPResponseProcessorCachelist(CacheHandler cacheHandler, int max_filesize) {
+	public HTTPResponseProcessorCachelist(CacheHandler cacheHandler) {
 		this.cacheHandler = cacheHandler;
-		this.max_filesize = max_filesize <= 0 ? 10485760 : max_filesize;
-		this.bufferFilenum = Settings.isUseLessMemory() ? 1000 : 25000;
 	}
 	
 	public int initialize() {
-		Out.info("Calculating cache file list parameters and preparing for send...");
-		cacheListStrlen = cacheHandler.getCachedFilesStrlen(max_filesize);
-		cacheListWritten = 0;
-		Out.debug("Calculated cacheListStrlen = " + cacheListStrlen);
+		// note: this class is only safe to use during startup while the client is still single-threaded
+		// any cache additions or deletions between the initial file length is calculated and this class is invoked will make things fail
 
-		fileidBuffer = new StringBuilder(65 * bufferFilenum);
-		fileidOffset = 0;
+		cacheListWritten = 0;
+		segmentIndex = 0;
+		segmentCount = cacheHandler.getSegmentCount();
+		
+		fileidBuffer = new StringBuilder(Settings.TCP_PACKET_SIZE_HIGH + 65 * Math.round(2 * cacheHandler.getStartupCachedFilesStrlen() / segmentCount));
 		
 		Out.info("Sending cache list, and waiting for the server to register the cached files.. (this could take a while)");
 		
@@ -56,30 +52,32 @@ public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 	}
 
 	public int getContentLength() {
-		return cacheListStrlen;
+		return cacheHandler.getStartupCachedFilesStrlen();
 	}
 	
 	public byte[] getBytes() {
-		return getBytesRange(cacheListStrlen);
+		return getBytesRange(cacheHandler.getStartupCachedFilesStrlen());
 	}
 	
 	public byte[] getBytesRange(int len) {
-		//Out.debug("Before: cacheListStrlen=" + cacheListStrlen + ", cacheListWritten=" + cacheListWritten + ", fileidBuffer=" + fileidBuffer.length() +", len=" + len + ", max_filesize=" + max_filesize + ", fileidOffset=" + fileidOffset);
+		//Out.debug("Before: cacheListWritten=" + cacheListWritten + ", fileidBuffer=" + fileidBuffer.length() +", len=" + len);
 
 		while(fileidBuffer.length() < len) {
-			LinkedList<CacheListFile> cachedFiles = cacheHandler.getCachedFilesRange(fileidOffset, bufferFilenum);
+			Out.info("Retrieving segment " + segmentIndex + " of " + segmentCount);
+		
+			if(segmentIndex >= segmentCount) {
+				HentaiAtHomeClient.dieWithError("Segment out of range");
+			}
+			
+			LinkedList<CacheListFile> cachedFiles = cacheHandler.getCachedFilesSegment(Integer.toHexString(segmentCount | segmentIndex++).substring(1));
 
 			if(cachedFiles.size() < 1) {
-				HentaiAtHomeClient.dieWithError("Failed to buffer requested data for cache list write. (cacheListStrlen=" + cacheListStrlen + ", cacheListWritten=" + cacheListWritten + ", fileidBuffer=" + fileidBuffer.length() +", len=" + len + ", max_filesize=" + max_filesize + ", fileidOffset=" + fileidOffset + ")");
+				continue;
 			}
 			
 			for(CacheListFile file : cachedFiles) {
-				if( (file.getFilesize() <= max_filesize) && !Settings.isStaticRange(file.getFileid()) ) {
-					fileidBuffer.append(file.getFileid() + "\n");
-				}
+				fileidBuffer.append(file.getFileid() + "\n");
 			}
-			
-			fileidOffset += bufferFilenum;
 		}
 		
 		byte[] returnBytes = fileidBuffer.substring(0, len).getBytes(java.nio.charset.Charset.forName("ISO-8859-1"));
@@ -91,7 +89,7 @@ public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 		
 		cacheListWritten += returnBytes.length;
 		
-		//Out.debug("After: cacheListStrlen=" + cacheListStrlen + ", cacheListWritten=" + cacheListWritten + ", fileidBuffer=" + fileidBuffer.length() +", len=" + len + ", max_filesize=" + max_filesize + ", fileidOffset=" + fileidOffset);
+		//Out.debug("After: cacheListWritten=" + cacheListWritten + ", fileidBuffer=" + fileidBuffer.length() +", len=" + len);
 		
 		return returnBytes;
 	}

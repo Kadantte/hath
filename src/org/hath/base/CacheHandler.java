@@ -36,12 +36,12 @@ public class CacheHandler {
 	private static File cachedir = null, tmpdir = null;
 	private Connection sqlite = null;
 
-	private int cacheCount;
+	private int cacheCount, startupCachedFileStrlen;
 	private long cacheSize;
 	private boolean quickStart = false;
 
 	protected PreparedStatement cacheIndexClearActive, cacheIndexCountStats;
-	protected PreparedStatement queryCachelistLength, queryCachedFileLasthit,  queryCachedFileSortOnLasthit;
+	protected PreparedStatement queryCachelistSegment, queryCachedFileLasthit,  queryCachedFileSortOnLasthit;
 	protected PreparedStatement insertCachedFile, updateCachedFileLasthit, updateCachedFileActive;
 	protected PreparedStatement deleteCachedFile, deleteCachedFileInactive;
 	protected PreparedStatement getStringVar, setStringVar;
@@ -120,7 +120,7 @@ public class CacheHandler {
 
 			cacheIndexClearActive = sqlite.prepareStatement("UPDATE CacheList SET active=0;");
 			cacheIndexCountStats = sqlite.prepareStatement("SELECT COUNT(*), SUM(filesize) FROM CacheList;");
-			queryCachelistLength = sqlite.prepareStatement("SELECT fileid FROM CacheList WHERE filesize<=? ORDER BY lasthit, fileid LIMIT ?, ?;");
+			queryCachelistSegment = sqlite.prepareStatement("SELECT fileid, filesize FROM CacheList WHERE fileid BETWEEN ? AND ?;");
 			queryCachedFileLasthit = sqlite.prepareStatement("SELECT lasthit FROM CacheList WHERE fileid=?;");
 			queryCachedFileSortOnLasthit = sqlite.prepareStatement("SELECT fileid, lasthit, filesize FROM CacheList ORDER BY lasthit, fileid LIMIT ?, ?;");
 			insertCachedFile = sqlite.prepareStatement("INSERT OR REPLACE INTO CacheList (fileid, lasthit, filesize, active) VALUES (?, ?, ?, 1);");
@@ -718,74 +718,57 @@ public class CacheHandler {
 		return cacheCount;
 	}
 
-	public int getCachedFilesStrlen(int maxsize) {
-		int size = 0;
-
-		try {
-			synchronized(sqlite) {
-				int sliceStart = 0;
-				int sliceSize = Settings.isUseLessMemory() ? 1000 : 25000;
-				int setResults = 0;
-
-				do {
-					System.gc();
-
-					queryCachelistLength.setInt(1, maxsize);
-					queryCachelistLength.setInt(2, sliceStart);
-					queryCachelistLength.setInt(3, sliceSize);
-					ResultSet rs = queryCachelistLength.executeQuery();
-
-					setResults = 0;
-
-					while(rs.next()) {
-						// not sent as part of the cache list if it is in a static range
-						String fileid = rs.getString(1);
-
-						if(!Settings.isStaticRange(fileid)) {
-							size += 1 + fileid.length();
-						}
-
-						setResults += 1;
-					}
-
-					sliceStart += sliceSize;
-					rs.close();
-
-					System.gc();
-				} while(setResults == sliceSize);
-			}
-		} catch(Exception e) {
-			Out.error("CacheHandler: Failed to perform database operation");
-			client.dieWithError(e);
-		}
-
-		return size;
+	public int getSegmentCount() {
+		return (Settings.isUseLessMemory() && cacheCount > 16000) || (cacheCount > 400000) ? 256 : 16;
 	}
 
-	public LinkedList<CacheListFile> getCachedFilesRange(int offset, int maxlen) {
+	public int getStartupCachedFilesStrlen() {
+		return startupCachedFileStrlen;
+	}
+	
+	public void calculateStartupCachedFilesStrlen() {
+		int segmentCount = getSegmentCount();
+		startupCachedFileStrlen = 0;
+		
+		for( int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++ ) {
+			LinkedList<CacheListFile> cachedFiles = getCachedFilesSegment(Integer.toHexString(segmentCount | segmentIndex).substring(1));
+			
+			for( CacheListFile file : cachedFiles ) {
+				startupCachedFileStrlen += file.getFileid().length() + 1;
+			}
+			
+			Out.info("Calculated segment " + segmentIndex + " of " + segmentCount);
+		}
+	}
+
+	public LinkedList<CacheListFile> getCachedFilesSegment(String segment) {
 		LinkedList<CacheListFile> fileList = new LinkedList<CacheListFile>();
 
 		try {
 			System.gc();
 
 			synchronized(sqlite) {
-				queryCachedFileSortOnLasthit.setInt(1, offset);
-				queryCachedFileSortOnLasthit.setInt(2, maxlen);
-				ResultSet rs = queryCachedFileSortOnLasthit.executeQuery();
+				queryCachelistSegment.setString(1, segment + "0");
+				queryCachelistSegment.setString(2, segment + "g");
+				ResultSet rs = queryCachelistSegment.executeQuery();
 
-				while(rs.next()) {
-					fileList.add(new CacheListFile(rs.getString(1), rs.getLong(3)));
+				while( rs.next() ) {
+					String fileid = rs.getString(1);
+					if( !Settings.isStaticRange(fileid) ) {
+						fileList.add(new CacheListFile(fileid, rs.getLong(2)));
+					}
 				}
 
 				rs.close();
 			}
 
 			System.gc();
-		} catch(Exception e) {
+		}
+		catch(Exception e) {
 			Out.error("CacheHandler: Failed to perform database operation");
 			client.dieWithError(e);
 		}
-
+		
 		return fileList;
 	}
 

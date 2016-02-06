@@ -57,8 +57,7 @@ public class HTTPResponse {
 			if(command.equalsIgnoreCase("still_alive")) {
 				return new HTTPResponseProcessorText("I feel FANTASTIC and I'm still alive");
 			} else if(command.equalsIgnoreCase("cache_list")) {
-				String max_filesize = addTable.get("max_filesize");
-				return new HTTPResponseProcessorCachelist(client.getCacheHandler(), max_filesize != null ? Integer.parseInt(max_filesize) : 0);
+				return new HTTPResponseProcessorCachelist(client.getCacheHandler());
 			} else if(command.equalsIgnoreCase("cache_files")) {
 				return new HTTPResponseProcessorText(client.getServerHandler().downloadFilesFromServer(addTable));
 			} else if(command.equalsIgnoreCase("proxy_test")) {
