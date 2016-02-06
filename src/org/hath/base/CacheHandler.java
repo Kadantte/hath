@@ -300,7 +300,7 @@ public class CacheHandler {
 			client.dieWithError("The storage device does not have enough space available to hold the given cache size.\nFree up space, or reduce the cache size from the H@H settings page.\nhttp://g.e-hentai.org/hentaiathome.php?cid=" + Settings.getClientID());
 		}
 
-		if( (cacheCount < 1) && (Settings.getStaticRangeCount() > 0) ) {
+		if( (cacheCount < 1) && (Settings.getStaticRangeCount() > 20) ) {
 			// note: if this check is removed and the client is started with an empty cache and several static ranges assigned, it will cause a major loss of trust.
 			client.setFastShutdown();
 			client.dieWithError("This client has static ranges assigned to it, but the cache is empty.\nCheck permissions and, if necessary, delete the file hath.db in the data directory to rebuild the cache database.\nIf the cache has been deleted or is otherwise lost, you have to manually reset your static ranges from the H@H settings page.\nhttp://g.e-hentai.org/hentaiathome.php?cid=" + Settings.getClientID());

@@ -1,6 +1,6 @@
 /*
 
-Copyright 2008-2014 E-Hentai.org
+Copyright 2008-2015 E-Hentai.org
 http://forums.e-hentai.org/
 ehentai@gmail.com
 
@@ -31,8 +31,8 @@ public class Settings {
 	public static final String NEWLINE = System.getProperty("line.separator");
 	
 	// the client build is among others used by the server to determine the client's capabilities. any forks should use the build number as an indication of compatibility with mainline, and not use it as an internal build number.
-	public static final int CLIENT_BUILD = 96;
-	public static final String CLIENT_VERSION = "1.2.5";
+	public static final int CLIENT_BUILD = 98;
+	public static final String CLIENT_VERSION = "1.2.6";
 	
 	public static final String CLIENT_API_URL = "http://rpc.hentaiathome.net/clientapi.php?";
 	
@@ -48,6 +48,7 @@ public class Settings {
 	public static final String CONTENT_TYPE_JPG = "image/jpeg";
 	public static final String CONTENT_TYPE_PNG = "image/png";
 	public static final String CONTENT_TYPE_GIF = "image/gif";
+	public static final String CONTENT_TYPE_WEBM = "video/webm";
 	
 	public static final int TCP_PACKET_SIZE_HIGH = 1460;
 	public static final int TCP_PACKET_SIZE_LOW = 536;
@@ -242,7 +243,9 @@ public class Settings {
 				clientHost = value;
 			}
 			else if(setting.equals("port")) {
-				clientPort = Integer.parseInt(value);
+				if( clientPort == 0 ) {
+					clientPort = Integer.parseInt(value);
+				}
 			}
 			else if(setting.equals("request_server")) {
 				requestServer = value;

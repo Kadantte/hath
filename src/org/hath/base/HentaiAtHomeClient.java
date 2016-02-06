@@ -1,6 +1,6 @@
 /*
 
-Copyright 2008-2014 E-Hentai.org
+Copyright 2008-2015 E-Hentai.org
 http://forums.e-hentai.org/
 ehentai@gmail.com
 
@@ -23,16 +23,22 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 /*
 
-- Some inefficient code in the random data generation used for speedtests was replaced with a much faster (10-12x) version. This should cause less CPU spikes during speed testing, and potentially higher tested speeds if the CPU was capped. (Thanks Hobbitmon)
+- Moved log write synchronization to prevent rare errors when rotating logs.
 
-- With a large cache and under heavy load, having to free disk space would sometimes take a long time and therefore prevent the client from doing anything else that runs from the main thread or requires database access. Some tweaks to the free space generator should now prevent this.
+- TCP sending buffers are now calculated dynamically. Note that for low-memory clients, making sure the throttle is set correctly (even if disabled) will avoid wasting RAM.
 
-- Made log flushing on program shutdown more consistent.
+- When H@H is started with the --port=<num> argument, the port is no longer overridden by the startup sequence. This enables an easy hack to run H@H on port 80 on Linux as a non-privileged user by using a local forwarding rule, such as:
+
+[code]-A INPUT -p tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp --dport 7777 -j ACCEPT
+-A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 7777[/code]
+
+- The startup check for static ranges will now only fail if the cache is empty and more than 20 ranges are set. (The absolute strictness could cause problems under some circumstances.)
+
+- Added mime-type for webm.
 
 
-http://stackoverflow.com/questions/4507572/swing-jtextarea-multithreading-problem-interruptedexception
-
-[b]To update an existing client: shut it down, download [url=http://hentaiathome.net/get/HentaiAtHome_1.2.4.zip]Hentai@Home 1.2.4[/url], extract the archive, copy the jar files over the existing ones, then restart the client.[/b]
+[b]To update an existing client: shut it down, download [url=http://hentaiathome.net/get/HentaiAtHome_1.2.6.zip]Hentai@Home 1.2.6[/url], extract the archive, copy the jar files over the existing ones, then restart the client.[/b]
 
 [b]For information on how to join Hentai@Home, check out [url=http://forums.e-hentai.org/index.php?showtopic=19795]The Hentai@Home Project FAQ[/url].[/b]
 
@@ -163,7 +169,10 @@ public class HentaiAtHomeClient implements Runnable {
 		}
 		
 		if(cacheHandler.getCacheCount() < 1) {
-			Out.info("Important: Your cache does not yet contain any files. Because of this, you won't receive much traffic until the client has downloaded some files. This should usually happen within a few minutes. The longer you run the client, the more files it will download to your cache, which directly translates into higher utilization.");
+			Out.info("Important: Your cache does not yet contain any files.");
+			Out.info("Because of this, you won't receive any traffic until the client has downloaded some files.");
+			Out.info("This should usually happen within a few minutes, but traffic will take time to build up.");
+			Out.info("The longer you run the client, the higher the utilization will become.");
 		}
 		
 		// check if we're in an active schedule

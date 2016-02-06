@@ -66,6 +66,8 @@ public class HVFile {
 			return Settings.CONTENT_TYPE_PNG;
 		} else if(type.equals("gif")) {
 			return Settings.CONTENT_TYPE_GIF;
+		} else if(type.equals("wbm")) {
+			return Settings.CONTENT_TYPE_WEBM;
 		} else {
 			return Settings.CONTENT_TYPE_OCTET;
 		}
@@ -90,7 +92,7 @@ public class HVFile {
 
 	// static stuff
 	public static boolean isValidHVFileid(String fileid) {
-		return java.util.regex.Pattern.matches("^[a-f0-9]{40}-[0-9]{1,8}-[0-9]{1,5}-[0-9]{1,5}-((jpg)|(png)|(gif))$", fileid);
+		return java.util.regex.Pattern.matches("^[a-f0-9]{40}-[0-9]{1,8}-[0-9]{1,5}-[0-9]{1,5}-((jpg)|(png)|(gif)|(wbm))$", fileid);
 	}
 
 	public static HVFile getHVFileFromFile(File file, boolean verify) {

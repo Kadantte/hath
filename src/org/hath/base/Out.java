@@ -1,6 +1,6 @@
 /*
 
-Copyright 2008-2012 E-Hentai.org
+Copyright 2008-2015 E-Hentai.org
 http://forums.e-hentai.org/
 ehentai@gmail.com
 
@@ -116,25 +116,22 @@ public class Out {
 	public static void flushLogs() {
 		try {
 			logout.flush();
-		} 
-		catch(Exception e) {}					
+		} catch(Exception e) {
+			
+		}					
 	}
 
 	private static FileWriter startLogger(String logfile) {
-		// delete existing old logs
-		for(int i=3; i>=0; i--) {
-			(new File(logfile + "." + i)).delete();
-		}
-
-		(new File(logfile + ".old")).delete();
-		(new File(logfile)).renameTo(new File(logfile + ".old"));
-		
-		FileWriter log = null;
+		FileWriter writer = null;
 
 		if(logfile != null) {
+			// delete old log if present, and rotate
+			(new File(logfile + ".old")).delete();
+			(new File(logfile)).renameTo(new File(logfile + ".old"));
+		
 			if(logfile.length() > 0) {
 				try {
-					log = new FileWriter(logfile, true);
+					writer = new FileWriter(logfile, true);
 				} catch (java.io.IOException e) {
 				   e.printStackTrace();
 				   System.err.println("Failed to open log file " + logfile);
@@ -142,14 +139,11 @@ public class Out {
 			}
 		}
 
-		if(log != null) {
-			Out.info("Started logging to " + logfile);
-			log("", log);
-			log("*********************************************************", log);
-			log(sdf.format(new Date()) + " Logging started", log);
+		if(writer != null) {
+			log("\n" + sdf.format(new Date()) + " Logging started", writer, true);
 		}
 
-		return log;
+		return writer;
 	}
 	
 	private static boolean stopLogger(FileWriter logger) {
@@ -180,7 +174,7 @@ public class Out {
 		or_out.println(x, "ERROR", ERROR);
 	}
 
-	private static void log(String data, int severity) {
+	private static synchronized void log(String data, int severity) {
 		if( ((severity & LOGOUT) > 0) && writeLogs ) {
 			log(data, logout, false);
 			if(++logout_count > 100000) {
@@ -206,22 +200,17 @@ public class Out {
 		}
 	}
 	
-	private static void log(String data, FileWriter writer) {
-		log(data, writer, false);
-	}
-
-   private static void log(String data, FileWriter writer, boolean flush) {
+	private static void log(String data, FileWriter writer, boolean flush) {
+		// note: unsynchronized. usage of this function for a specific writer must be serialized.
 		if(writer != null) {
-			synchronized (writer) {
-				try {
-					writer.write(data + "\n");
-					if(flush) {
-						writer.flush();
-					}
-				} catch (java.io.IOException ioe) {
-					// IMPORTANT: writes to the default System.err to prevent loops
-					ioe.printStackTrace(def_err);
+			try {
+				writer.write(data + "\n");
+				if(flush) {
+					writer.flush();
 				}
+			} catch (java.io.IOException ioe) {
+				// IMPORTANT: writes to the default System.err to prevent loops
+				ioe.printStackTrace(def_err);
 			}
 		}
 	}
@@ -247,8 +236,7 @@ public class Out {
 			} else {
 				return "{Unknown Source}";
 			}
-		}
-		else {
+		} else {
 			return "";
 		}
 	}

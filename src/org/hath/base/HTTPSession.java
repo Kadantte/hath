@@ -1,6 +1,6 @@
 /*
 
-Copyright 2008-2012 E-Hentai.org
+Copyright 2008-2015 E-Hentai.org
 http://forums.e-hentai.org/
 ehentai@gmail.com
 
@@ -138,7 +138,19 @@ public class HTTPSession implements Runnable {
 			header.append(CRLF);
 		
 			// write the header to the socket
-			byte[] headerBytes = header.toString().getBytes(Charset.forName("ISO-8859-1"));	
+			byte[] headerBytes = header.toString().getBytes(Charset.forName("ISO-8859-1"));
+			
+			if(contentLength > 0) {
+				try {
+					// buffer size might be limited by OS. for linux, check net.core.wmem_max
+					int bufferSize = (int) Math.min(contentLength + headerBytes.length + 32, Math.min(Settings.isUseLessMemory() ? 131072 : 524288, Math.round(0.2 * Settings.getThrottleBytesPerSec())));
+					mySocket.setSendBufferSize(bufferSize);
+					//Out.debug("Socket size for " + connId + " is now " + mySocket.getSendBufferSize() + " (requested " + bufferSize + ")");
+				} catch (Exception e) {
+					Out.info(e.getMessage());
+				}
+			}
+
 			bs.write(headerBytes, 0, headerBytes.length);
 			
 			// subtract the total size of the header from the size of the first data packet sent. this avoids a problem where the third packet is undersize.

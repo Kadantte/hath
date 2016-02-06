@@ -1,6 +1,6 @@
 /*
 
-Copyright 2008-2012 E-Hentai.org
+Copyright 2008-2015 E-Hentai.org
 http://forums.e-hentai.org/
 ehentai@gmail.com
 
@@ -199,14 +199,6 @@ public class HTTPServer implements Runnable {
 						try { s.close(); } catch(Exception e) { /* LALALALALA */ }					
 					}
 					else {
-						try {
-							s.setReceiveBufferSize(131072);
-							s.setSendBufferSize(131072);
-							s.setTrafficClass(8);
-						} catch(java.net.SocketException e) {
-							Out.debug("Could not set socket buffers: " + e.getMessage());
-						}
-					
 						// all is well. keep truckin'
 						HTTPSession hs = new HTTPSession(s, getNewConnId(), localNetworkAccess, this);
 						sessions.add(hs);
