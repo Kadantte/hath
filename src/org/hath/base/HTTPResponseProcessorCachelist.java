@@ -24,7 +24,6 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 package org.hath.base;
 
 import java.util.LinkedList;
-import org.hath.base.CacheHandler.CacheListFile;
 
 public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 	private CacheHandler cacheHandler;
@@ -44,7 +43,7 @@ public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 		segmentIndex = 0;
 		segmentCount = cacheHandler.getSegmentCount();
 		
-		fileidBuffer = new StringBuilder(Settings.TCP_PACKET_SIZE_HIGH + 65 * Math.round(2 * cacheHandler.getStartupCachedFilesStrlen() / segmentCount));
+		fileidBuffer = new StringBuilder(Settings.TCP_PACKET_SIZE_HIGH + Math.round(2 * cacheHandler.getStartupCachedFilesStrlen() / segmentCount));
 		
 		Out.info("Sending cache list, and waiting for the server to register the cached files.. (this could take a while)");
 		
@@ -62,21 +61,21 @@ public class HTTPResponseProcessorCachelist extends HTTPResponseProcessor {
 	public byte[] getBytesRange(int len) {
 		//Out.debug("Before: cacheListWritten=" + cacheListWritten + ", fileidBuffer=" + fileidBuffer.length() +", len=" + len);
 
-		while(fileidBuffer.length() < len) {
+		while( fileidBuffer.length() < len ) {
 			Out.info("Retrieving segment " + segmentIndex + " of " + segmentCount);
 		
-			if(segmentIndex >= segmentCount) {
+			if( segmentIndex >= segmentCount ) {
 				HentaiAtHomeClient.dieWithError("Segment out of range");
 			}
 			
-			LinkedList<CacheListFile> cachedFiles = cacheHandler.getCachedFilesSegment(Integer.toHexString(segmentCount | segmentIndex++).substring(1));
+			LinkedList<String> fileList = cacheHandler.getCachedFilesSegment(Integer.toHexString(segmentCount | segmentIndex++).substring(1));
 
-			if(cachedFiles.size() < 1) {
+			if( fileList.size() < 1 ) {
 				continue;
 			}
 			
-			for(CacheListFile file : cachedFiles) {
-				fileidBuffer.append(file.getFileid() + "\n");
+			for( String fileid : fileList ) {
+				fileidBuffer.append(fileid + "\n");
 			}
 		}
 		

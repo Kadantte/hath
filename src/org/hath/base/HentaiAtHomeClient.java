@@ -23,11 +23,11 @@ along with Hentai@Home.  If not, see <http://www.gnu.org/licenses/>.
 
 /*
 
-Clients with a large number of files could run into issues where the startup sequence took so long that you hit a server-side timeout. 
+- Dropped unnecessary legacy wrapping class when generating cache lists, which should slightly reduce memory overhead during startup.
 
-This update changes how cache lists are generated and sent to the server to speed it up, hopefully by a huge amount.
+- Fixed a bug in the StringBuilder initialization for the Cachelist processor that lead to it allocating a buffer that was much larger than intended, which could lead to out-of-memory errors during startup with caches of certain size ranges.
 
-You don't need to apply this update unless you are having issues with slow startups.
+- Files that were part of a removed static range will now be deleted at first startup instead of being shuffled into the dynamic file pool. They would see very little traffic, and this should cause less server overhead and avoid breakage on systems with very slow CPUs.
 
 
 http://stackoverflow.com/questions/4507572/swing-jtextarea-multithreading-problem-interruptedexception
@@ -111,8 +111,8 @@ public class HentaiAtHomeClient implements Runnable {
 		Stats.setProgramStatus("Initializing cache handler...");
 
 		// manages the files in the cache
-		cacheHandler = new CacheHandler(this);
 		try {
+			cacheHandler = new CacheHandler(this);
 			cacheHandler.initializeCacheHandler();
 			cacheHandler.flushRecentlyAccessed();
 		}

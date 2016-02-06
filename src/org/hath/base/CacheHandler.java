@@ -57,10 +57,13 @@ public class CacheHandler {
 	private static final String CLEAN_SHUTDOWN_VALUE = "clean_r81";
 	private static final int MEMORY_TABLE_ELEMENTS = 1048576;
 
-	public CacheHandler(HentaiAtHomeClient client) {
+	public CacheHandler(HentaiAtHomeClient client) throws java.io.IOException {
 		this.client = client;
 		this.recentlyAccessed = new ArrayList<CachedFile>(100);
 		this.pendingRegister = new ArrayList<HVFile>(50);
+
+		tmpdir = FileTools.checkAndCreateDir(new File("tmp"));
+		cachedir = FileTools.checkAndCreateDir(new File("cache"));
 
 		if(!Settings.isUseLessMemory()) {
 			// the memoryWrittenTable can hold 16^5 = 1048576 shorts consisting of 16 bits each.
@@ -120,7 +123,7 @@ public class CacheHandler {
 
 			cacheIndexClearActive = sqlite.prepareStatement("UPDATE CacheList SET active=0;");
 			cacheIndexCountStats = sqlite.prepareStatement("SELECT COUNT(*), SUM(filesize) FROM CacheList;");
-			queryCachelistSegment = sqlite.prepareStatement("SELECT fileid, filesize FROM CacheList WHERE fileid BETWEEN ? AND ?;");
+			queryCachelistSegment = sqlite.prepareStatement("SELECT fileid FROM CacheList WHERE fileid BETWEEN ? AND ?;");
 			queryCachedFileLasthit = sqlite.prepareStatement("SELECT lasthit FROM CacheList WHERE fileid=?;");
 			queryCachedFileSortOnLasthit = sqlite.prepareStatement("SELECT fileid, lasthit, filesize FROM CacheList ORDER BY lasthit, fileid LIMIT ?, ?;");
 			insertCachedFile = sqlite.prepareStatement("INSERT OR REPLACE INTO CacheList (fileid, lasthit, filesize, active) VALUES (?, ?, ?, 1);");
@@ -163,10 +166,10 @@ public class CacheHandler {
 			catch(Exception e) {}
 
 			resetFutureLasthits();
-			
+
 			Out.info("CacheHandler: Optimizing database...");
 			stmt.executeUpdate("VACUUM;");
-			
+
 			// are we dirty?
 			if(!Settings.isForceDirty()) {
 				getStringVar.setString(1, CLEAN_SHUTDOWN_KEY);
@@ -190,47 +193,50 @@ public class CacheHandler {
 
 		return false;
 	}
-	
+
 	private void resetFutureLasthits() throws SQLException {
 		long nowtime = (long) Math.floor(System.currentTimeMillis() / 1000);
-		
+
 		sqlite.setAutoCommit(false);
-		
+
 		Out.info("CacheHandler: Checking future lasthits on non-static files...");
-		
+
 		PreparedStatement getFutureLasthits = sqlite.prepareStatement("SELECT fileid FROM CacheList WHERE lasthit>?;");
-		getFutureLasthits.setLong(1, nowtime);
+		getFutureLasthits.setLong(1, nowtime + 2592000);
 		ResultSet rs = getFutureLasthits.executeQuery();
-		
-		List<String> resetlist = Collections.checkedList(new ArrayList<String>(), String.class);
-		
+
+		List<String> removelist = Collections.checkedList(new ArrayList<String>(), String.class);
+
 		while( rs.next() ) {
 			String fileid = rs.getString(1);
 			if( !Settings.isStaticRange(fileid) ) {
-				resetlist.add(fileid);
-			}			
+				removelist.add(fileid);
+			}
 		}
-		
+
 		rs.close();
-		
-		PreparedStatement resetLasthit = sqlite.prepareStatement("UPDATE CacheList SET lasthit=? WHERE fileid=?;");
-		
-		for( String fileid : resetlist ) {
-			resetLasthit.setLong(1, nowtime);
-			resetLasthit.setString(2, fileid);
-			resetLasthit.executeUpdate();
-			
-			Out.debug("Reset lasthit for " + fileid);
+
+		//PreparedStatement resetLasthit = sqlite.prepareStatement("UPDATE CacheList SET lasthit=? WHERE fileid=?;");
+
+		for( String fileid : removelist ) {
+			//resetLasthit.setLong(1, nowtime);
+			//resetLasthit.setString(2, fileid);
+			//resetLasthit.executeUpdate();
+
+			deleteCachedFile.setString(1, fileid);
+			deleteCachedFile.executeUpdate();
+			HVFile.getHVFileFromFileid(fileid).getLocalFileRef().delete();
+			Out.debug("Removed old static range file " + fileid);
 		}
 
 		Out.info("CacheHandler: Resetting remaining far-future lasthits...");
-		
+
 		PreparedStatement resetFutureStatic = sqlite.prepareStatement("UPDATE CacheList SET lasthit=? WHERE lasthit>?;");
-		
+
 		resetFutureStatic.setLong(1, nowtime + 7776000);
 		resetFutureStatic.setLong(2, nowtime + 31536000);
 		resetFutureStatic.executeUpdate();
-		
+
 		sqlite.setAutoCommit(true);
 	}
 
@@ -250,9 +256,6 @@ public class CacheHandler {
 
 	public void initializeCacheHandler() throws java.io.IOException {
 		Out.info("CacheHandler: Initializing the cache system...");
-
-		tmpdir = FileTools.checkAndCreateDir(new File("tmp"));
-		cachedir = FileTools.checkAndCreateDir(new File("cache"));
 
 		// delete orphans from the temp dir
 
@@ -629,14 +632,14 @@ public class CacheHandler {
 				while( rs.next() ) {
 					String fileid = rs.getString(1);
 					long lasthit = rs.getInt(2);
-					
-					if( lasthit < nowtime - 2592000 ) {	
+
+					if( lasthit < nowtime - 2592000 ) {
 						HVFile toRemove = HVFile.getHVFileFromFileid(fileid);
 
 						if( toRemove != null ) {
 							deleteFileFromCacheNosync(toRemove);
 							++pruneCount;
-							
+
 							if( !Settings.isStaticRange(fileid) ) {
 								// don't notify for static range files
 								deleteNotify.add(toRemove);
@@ -725,24 +728,24 @@ public class CacheHandler {
 	public int getStartupCachedFilesStrlen() {
 		return startupCachedFileStrlen;
 	}
-	
+
 	public void calculateStartupCachedFilesStrlen() {
 		int segmentCount = getSegmentCount();
 		startupCachedFileStrlen = 0;
-		
+
 		for( int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++ ) {
-			LinkedList<CacheListFile> cachedFiles = getCachedFilesSegment(Integer.toHexString(segmentCount | segmentIndex).substring(1));
-			
-			for( CacheListFile file : cachedFiles ) {
-				startupCachedFileStrlen += file.getFileid().length() + 1;
+			LinkedList<String> fileList = getCachedFilesSegment(Integer.toHexString(segmentCount | segmentIndex).substring(1));
+
+			for( String fileid : fileList ) {
+				startupCachedFileStrlen += fileid.length() + 1;
 			}
-			
+
 			Out.info("Calculated segment " + segmentIndex + " of " + segmentCount);
 		}
 	}
 
-	public LinkedList<CacheListFile> getCachedFilesSegment(String segment) {
-		LinkedList<CacheListFile> fileList = new LinkedList<CacheListFile>();
+	public LinkedList<String> getCachedFilesSegment(String segment) {
+		LinkedList<String> fileList = new LinkedList<String>();
 
 		try {
 			System.gc();
@@ -755,7 +758,7 @@ public class CacheHandler {
 				while( rs.next() ) {
 					String fileid = rs.getString(1);
 					if( !Settings.isStaticRange(fileid) ) {
-						fileList.add(new CacheListFile(fileid, rs.getLong(2)));
+						fileList.add(fileid);
 					}
 				}
 
@@ -768,7 +771,7 @@ public class CacheHandler {
 			Out.error("CacheHandler: Failed to perform database operation");
 			client.dieWithError(e);
 		}
-		
+
 		return fileList;
 	}
 
@@ -918,27 +921,6 @@ public class CacheHandler {
 			}
 		}
 	}
-
-
-
-	public class CacheListFile {
-		protected String fileid;
-		protected long filesize;
-
-		public CacheListFile(String fileid, long filesize) {
-			this.fileid = fileid;
-			this.filesize = filesize;
-		}
-
-		public String getFileid() {
-			return fileid;
-		}
-
-		public long getFilesize() {
-			return filesize;
-		}
-	}
-
 
 	private class CachedFile {
 		private String fileid;
