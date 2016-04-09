@@ -7,7 +7,7 @@ Make sure to read and understand the license for this program, found in the file
  - Monitor active requests via GUI. (not sure if this still works)
  - It's on GitHub! (yay FoSS)
 
-# Coming soon
+## Coming soon
 
  - Maven???
  - Serve an index of the cache directory?????
