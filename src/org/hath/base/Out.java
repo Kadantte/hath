@@ -77,7 +77,7 @@ public class Out {
 	
 		suppressedOutput = 0;
 
-		sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"); // ISO 8601
+		sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss,SSS'Z'"); // ISO 8601
 		sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 		def_out = System.out;
 		def_err = System.err;
@@ -176,7 +176,7 @@ public class Out {
 
 	private static synchronized void log(String data, int severity) {
 		if( ((severity & LOGOUT) > 0) && writeLogs ) {
-			log(data, logout, false);
+			log(data, logout, logout_count % 5 == 0);
 			if(++logout_count > 100000) {
 				logout_count = 0;
 				def_out.println("Rotating output logfile...");
