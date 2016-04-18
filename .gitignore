@@ -1,9 +1,19 @@
-bin
-data
+# Output directories
+bin/
+out/
+data/
 
+# Binary files
 *.class
-
-# Package Files #
 *.jar
 *.war
 *.ear
+
+# Eclipse
+.settings/
+.classpath
+.project
+
+# IDEA
+.idea/
+*.iml
